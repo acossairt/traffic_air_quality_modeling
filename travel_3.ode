@@ -1,0 +1,97 @@
+# Population dynamics of two patches x1 and x2 with two connecting links z1 and z2
+# Toy model - 06/03/2024
+# x1 : home patch
+# x2 : work patch
+# z1 : first connecting corridor
+# z2 : second connecting corridor
+# Should always be true that x1+x2+z1+z2=1
+
+# x1_to_z1  : population leaving patch 1 and entering the first corridor (z1)
+# x1_to_z2  : population leaving patch 2 and entering the second corridor (z2)
+# z1_to_x1 : population leaving z1 and entering patch 1
+# z2_to_x1 : population leaving z2 and entering patch 2
+# alpha1 : travel preferences (people who want to leave x1)
+# beta1  : travel efficiency (size of corridor leaving x1 going to x2)
+# lp : number of people who want to leave their patch ("leaving people")
+# a1 : 0 or 1, turn "leaving" on and off to simulate diurnal demand patterns
+# When beta1=beta2, we are assuming the traffic in the corridor is well-mixed
+
+# alpha : impatience (all else constant, higher alpha -> fewer people want to leave)
+# beta : road-disrepair (all else constant, higher road-disrepair means fewer people arriving because of congestion/low capacity)
+
+# Could also define the functions this way
+#flux(a,b,impatience) = exp(-impatience*a)*b
+#dx1/dt = flux(z,z,beta1) - flux(z,x1,alpha1)
+
+# Main PDEs
+dx1/dt = z1_to_x1 + z2_to_x1 - x1_to_z1 - x1_to_z2
+dx2/dt = z1_to_x2 + z2_to_x2 - x2_to_z1 - x2_to_z2
+dz1/dt =  x1_to_z1 + x2_to_z1 - z1_to_x1 - z1_to_x2
+dz2/dt = x1_to_z2 + x2_to_z2 - z2_to_x1 - z2_to_x2
+# leaving functions
+x1_to_z1 = a1 * exp(-alpha1 * z1) * x1**lp
+x1_to_z2 = a1 * exp(-alpha1 * z2) * x1**lp
+x2_to_z1 = a2 * exp(-alpha2 * z1) * x2**lp
+x2_to_z2 = a2 * exp(-alpha2 * z2) * x2**lp
+# arriving functions
+z1_to_x1 = exp(-beta1 * z1) * z1
+z2_to_x1 = exp(-beta2 * z2) * z2
+z1_to_x2 = exp(-beta1 * z1) * z1
+z2_to_x2 = exp(-beta2 * z2) * z2
+
+# ICs and parameters
+init x1=0.3, x2=0, z1=0.5, z2=0.2
+param alpha1=0.2, alpha2=0.2, beta1=0.1, beta2=0.1
+param a1=1,a2=0
+param lp=1
+
+# xppaut options
+@ total=20, dt=0.1
+@ nplot=4
+@ xp=t, yp=x1, xp2=t, yp2=x2, xp3=t, yp3=z1, xp4=t, yp4=z2
+@ colormap=3
+
+# auxiliary variables for plotting fluxes
+aux x1out = x1_to_z1 + x1_to_z2
+aux x2out = x2_to_z1 + x2_to_z2
+aux x1in = z1_to_x1 + z2_to_x1
+aux x2in = z1_to_x2 + z2_to_x2
+
+done
+
+# Notes to self
+# ------------------------------------------------------------------
+
+# Interpretation
+# - All else constant, higher z (more people in corridor) means LESS people leaving patch
+# - Higher x1 or x2 means MORE people leaving (though this is controlled by the power lp)
+# - For arrivals, there is a tradeoff: higher z means lower coefficient (so less 
+#   efficient exiting the corridor, because congestion) but also higher constant (so
+#   more people exit corridor because there are more people in the corridor to begin with)
+# - Setting a1 or a2 to zero simulates diurnal demand patterns -- everyone wants to leave
+#   home and go to work, or leave work and come home
+# - All else constant, higher impatience means fewer people want to leave patch
+# - All else constant, higher road_capacity means fewer people arriving at patch (because they
+#   are stuck in traffic for longer)
+
+# Scenarios
+# impatience > road_capacity means corridor size can accomodate more people than want to leave
+# impatience < road_capacity means more people want to leave than the corridor can accomodate
+
+# 1) impatience = 0.1, road_capacity = 0.5 converges around 6 hours, most stuck in traffic, equal number
+#    at home and at work by about 6 or 7 hours
+# 2) impatience = 0.5, road_capacity = 0.1 converges around 6 hours, most at home (eventually equal
+#    number at work, around 6 hours), fewer people stuck in traffic
+# 3) alpha1 = 0.5, alpha2 = 0.1, road_capacity = 0.1 converges around 4 or 5 hours, most at
+#    home, equal number in traffic and at work
+# 4) impatience = 0.1, beta1 = 0.5, beta2 = 0.1 converges around 4 or 5 hours, least at home,
+#    equal number in traffic and at work
+
+# Add back later
+# ------------------------------------------------------------------
+# b1 : 0 or 1, turn "arriving" on and off to simulate congestion (?)
+# arriving1 = b1*exp(-beta1*z)*z
+# arriving2 = b2*exp(-beta2*z)*z
+# param b1=1,b2=1d
+
+# What would be the difference between b1 and beta1?
