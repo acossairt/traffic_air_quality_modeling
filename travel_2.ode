@@ -1,0 +1,80 @@
+# Population dynamics of two patches x1 and x2 with a connecting link z
+# Toy model - 06/03/2024
+# x1 : home patch
+# x2 : work patch
+# z  : connecting corridor
+# Should always be true that x1+x2+z=1
+
+# leaving1  : population leaving patch 1 and entering the "corridor", i.e. the road
+# arriving1 : population leaving the corridor and entering patch 1,
+# alpha1 : travel preferences (people who want to leave x1)
+# beta1  : travel efficiency (size of corridor leaving x1 going to x2)
+# lp : number of people who want to leave their patch ("leaving people")
+# a1 : 0 or 1, turn "leaving" on and off to simulate diurnal demand patterns
+# When beta1=beta2, we are assuming the traffic in the corridor is well-mixed
+
+# Could also define the functions this way
+#flux(a,b,alpha) = exp(-alpha*a)*b
+#dx1/dt = flux(z,z,beta1) - flux(z,x1,alpha1)
+
+dx1/dt = arriving1 - leaving1
+dx2/dt = arriving2 - leaving2
+dz/dt =  leaving1 - arriving1 + leaving2  - arriving2
+leaving1 = a1*exp(-alpha1*z)*x1**lp
+leaving2 = a2*exp(-alpha2*z)*x2**lp
+arriving1 = exp(-beta1*z)*z
+arriving2 = exp(-beta2*z)*z
+
+# ICs and parameters
+init x1=0.8,x2=0,z=0.2
+param alpha1=0.5,alpha2=0.2,beta1=0.1,beta2=0.1
+param a1=1,a2=1
+param lp=1
+
+# xppaut options
+@ total=10,dt=0.1
+
+@ xp=t,yp=x1,xp2=t,yp2=x2,xp3=t,yp3=z
+
+# auxiliary variables for plotting fluxes
+aux x1out = leaving1
+aux x2out = leaving2
+aux x1in = arriving1
+aux x2in = arriving2
+
+done
+
+# Notes to self
+# ------------------------------------------------------------------
+
+# Interpretation
+# - All else constant, higher z (more people in corridor) means LESS people leaving patch
+# - Higher x1 or x2 means MORE people leaving (though this is controlled by the power lp)
+# - For arrivals, there is a tradeoff: higher z means lower coefficient (so less 
+#   efficient exiting the corridor, because congestion) but also higher constant (so
+#   more people exit corridor because there are more people in the corridor to begin with)
+# - Setting a1 or a2 to zero simulates diurnal demand patterns -- everyone wants to leave
+#   home and go to work, or leave work and come home
+# - All else constant, higher alpha means fewer people want to leave patch
+# - All else constant, higher beta means fewer people arriving at patch (because they
+#   are stuck in traffic for longer)
+
+# Scenarios
+# alpha > beta means corridor size can accomodate more people than want to leave
+# alpha < beta means more people want to leave than the corridor can accomodate
+
+# 1) alpha = 0.1, beta = 0.5 converges around 6 hours, most stuck in traffic, equal number
+#    at home and at work by about 6 or 7 hours
+# 2) alpha = 0.5, beta = 0.1 converges around 6 hours, most at home (eventually equal
+#    number at work, around 6 hours), fewer people stuck in traffic
+# 3) alpha1 = 0.5, alpha2 = 0.1, beta = 0.1 converges around 4 or 5 hours, most at
+#    home, equal number in traffic and at work
+# 4) alpha = 0.1, beta1 = 0.5, beta2 = 0.1 converges around 4 or 5 hours, least at home,
+#    equal number in traffic and at work
+
+# Add back later
+# ------------------------------------------------------------------
+# b1 : 0 or 1, turn "arriving" on and off to simulate congestion (?)
+# arriving1 = b1*exp(-beta1*z)*z
+# arriving2 = b2*exp(-beta2*z)*z
+# param b1=1,b2=1d

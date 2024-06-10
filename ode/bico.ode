@@ -1,0 +1,3 @@
+binom(n,k,p)=exp(lgamma(n+1)-lgamma(n-k+1)-lgamma(k+1)+(n-k)*log(1-p)+k*log(p))
+x'=0
+done

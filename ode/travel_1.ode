@@ -1,0 +1,9 @@
+# Population dynamics of two patches
+dX/dt = f(t)  #- g(t)
+# dY/dt = -f(t) #g(t) - f(t)
+f(t) = a*abs(cos(t))*Y
+# g(t) = b*abs(sin(t))*X
+init X=100,Y=200
+param a=0.5,b=0.5
+@ total=2*pi,dt=0.25*pi
+done

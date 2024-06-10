@@ -1,0 +1,23 @@
+XPPAUT 6.10 changes
+
+1. Compilation - all files are together instead of separate directories and it is generally set up for 32 bit compilation due to problems with the f2c stuff  needed for AUTO.  
+
+2. A number of new functions added to the parser - lgamma (log gamma) and besseli(n,x) which I needed for a particular project
+
+3. New functionality to the kinescope viewer and to the AUTO grab feature. Use the arrow keys to navigate and the Home/End keys to go to the end. In AUTO, you can now click the mouse near a point on the diagram and go to it.  AUTO has zoom out also.
+
+4. At the end of each postscipt file, you will see the name of the ODE file that produced it and the values of the parameters in the problem
+
+5. Color coding is now supported by postscript
+
+6. Tons of new command line options. These make it possible to do very nice control of batch integration. type xppaut -help to see a list of them. In particular you can load parameter files, initial condition files etc. See the man pages for mor.
+
+7. GUI is more customizable. You can set the fonts, the background, foreground, mainwindow, drawing window colors from the command line or from the internal options.  AUTO is now in color and you can set the colors of the main branches.  The two parameter bifurcations have different colors as well.  You can also put an image in the background if it is made into an .xbm file.  
+
+8. Parameters are shown in the window when making a kinescope using parameter ranges. 
+
+9. Several bugs have been removed.
+
+10. Probably other stuff that I am forgetting!
+
+11. Bad news for the lovers of the classic edition. I don't think you can recreate the same color options.  

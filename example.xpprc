@@ -1,0 +1,5 @@
+@ bell=0,grads=0,dwcolor=ffffee,forecolor=222200
+@ bigfont=lucidasanstypewriter-bold-14
+@ ps_lw=15,ps_color=1,ps_font=Helvetica,ps_fsize=18
+@ nmax=2000,npr=500,ntst=60
+@ tutorial=0
