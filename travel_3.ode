@@ -21,38 +21,31 @@ dz2/dt = x1_to_z2 + x2_to_z2 - z2_to_x1 - z2_to_x2
 #  -------------------
 # What determines if a person will leave their current patch and enter a road?
 # At maximum, the number of people who want to leave a given patch to enter a given
-# road is the population of that patch (x1 or x2) divided by the number of roads (2).
+# road is the population of that patch (x1 or x2) divided by the number of roads (in
+# this case 2). Note that this division is important, or else you effectively have
+# "clones" of each driver.
 # The actual value will be less than the maximum as a function of 1) diurnal
 # demand patterns and 2) congestion.
-# First, there may be overarching demand, determined by parameters a1 and a2.
-# If a1=1, everyone in x1 wants to leave; if a1=0, no one in x1 wants to leave. 
-# Similar for a2 and x2.
-# Second, the presence of congestion will exponentially decrease the number of people
-# who want to leave a patch and enter a road. This exponential decay is parameterized
-# by impatience (alpha) and road capacity (beta). People in each patch have different 
-# levels of impatience for congestion, given by alpha1 and alpha2. All else held 
-# constant, a higher alpha means FEWER people in a patch will want to leave. 
-# Additionally, people consider the capacity of the roads. The inverse of road capacity 
-# is is given by parameters beta1 and beta2. All else held constant, a higher beta1 
-# means the road z1 has LOWER capacity, and so will experience MORE congestion 
-# (i.e. cars on z1 will exit into a patch more slowly). Same for beta2 and 
-# z2. Therefore, a higher beta1 means fewer people will want to leave x1 to enter 
-# z1, and a higher beta2 means fewer people will want to leave x1 to enter z2. 
-# Finally, there is a parameter lp (for "leaving people") which says what proportion
-# of the total patch population is open to leaving. At the moment, we set lp=1.
-# In total, the number of people who want to leave a given patch can be, at maximum,
-# the population of that patch divided by the number of roads. The actual value
-# declines from the maximum exponentially according to the congestion (z1 * beta1) on
-# that roadway, mediated by impatience alpha1. When beta1 = beta2, we assume
-# the traffic is well-mixed. 
-
-# alpha1 : impatience (all else constant, higher alpha -> fewer people want to leave)
-# beta1  : travel (in)efficiency from congestion (size of corridor leaving x1 going to x2)
-# lp : number of people who want to leave their patch ("leaving people")
-# a1 : 0 or 1, turn "leaving" on and off to simulate diurnal demand patterns
-# gamma : transportation infrastructure inefficiency (state of the road; all else 
-#         constant, higher inefficiency means fewer people arriving because of 
-#         congestion/low capacity)
+#
+# Overarching demand is given by parameters a1 and a2. If a1=1, everyone in x1 
+# wants to leave; if a1=0, no one in x1 wants to leave. Same for a2 and x2.
+#
+# The presence of congestion on a road will exponentially decrease the number of people
+# who want to leave a patch and enter that road. This exponential decay is parameterized
+# by 
+# - alpha1 and alpha2 (impatience): All else held constant, a higher alpha means FEWER 
+#   people in a patch will want to leave. Impatience may be different for each patch
+#   (e.g. people may be willing to bear more congestion when leaving home to go to work,
+#   whereas once at work, they may wait for congestion to decrease before returning home)
+# - beta1 and beta2 (inverse road capacity): The capacity of the roads affects how 
+#   number of cars gets translated to congestion (lower travel speeds). All else held 
+#   constant, a higher beta1 means the road z1 has LOWER capacity, and so will 
+#   experience MORE congestion (i.e. cars on z1 will exit into a patch more slowly).
+#   Therefore, a higher beta1 means fewer people will want to leave their patch to 
+#   enter z1. Same for beta2 and z2.
+# - lp (stands for "leaving people"): What proportion of the total population is open 
+#   to leaving at all. Anti-sociality might decrease lp. At the moment, we set lp=1.
+# When beta1 = beta2, we assume the traffic is well-mixed. 
 
 x1_to_z1 = a1 * exp(-alpha1 * z1 * beta1) * x1**lp / 2
 x1_to_z2 = a1 * exp(-alpha1 * z2 * beta2) * x1**lp / 2
@@ -64,14 +57,16 @@ x2_to_z2 = a2 * exp(-alpha2 * z2 * beta2) * x2**lp / 2
 # | Arriving functions |
 #  --------------------
 # What determines how many people exit the roads (z1 and z2) into each patch (x1 and 
-# x2)? Note that currently we do not prevent people from turning around and returning
-# to their origin patch.
+# x2)?
 # At maximum, the number of people who exit a road and arrive in a patch is the number
 # of people in that road (z1 or z2) divided by the number of patches (in this case 2).
-# The actual number declines exponentially with congestion. This is governed by the
+# The actual number declines exponentially with congestion, because congestion reduces
+# speed of travel (and therefore speed of arrivals). This is governed by the
 # congestion factor beta, which can be thought of as the inverse of road capacity.
-# A higher beta means a smaller road, so cars will exit more slowly (because they will
-# be stuck in traffic longer).
+# A higher beta means a smaller road, so cars will exit more slowly, because they will
+# be stuck in traffic longer. 
+# Note that currently we do not prevent people from turning around and returning
+# to their original patch.
 
 z1_to_x1 = exp(-beta1 * z1) * z1 / 2
 z2_to_x1 = exp(-beta2 * z2) * z2 / 2
@@ -89,35 +84,19 @@ z2_to_x2 = exp(-beta2 * z2) * z2 / 2
 # Use beta1 = 0.1, beta2 = 5 (or greater) to see this
 
 # PROBLEM: if beta=0, then we have "clones" (all of z1 moves to x1, but also all of z1 moves to x2)
-# Same (I assume) if alpha = 0
-# I could divide by the number of roads (2 in this case)
-# or argue that alpha and beta can never be zero
-# but do either of those make sense?
-# Also, when I look at z1out vs z1_to_x1 and z1_to_x2, they are indeed half of the total out...
-# ... that seems like maybe we're not cloning?
-# But then look at z1 vs z1out -- you see that z1out is twice as big as z1!
-# Indeed, z1 = z1_x1 = z1_x2 (check xppaut)
-# Implemented a change: divided everything by 2
-# Okay right now people are choosing roads based solely on how many people are on them, but
-# z doesn't tell you anything about the capacity of the road. So it's like people
-# don't have any sense that taking a smaller road with the same number of cars will 
-# result in longer travel times. Need to somehow account for beta in the choice equations?
-# Also, if alphas are less than 1, people are suuuper patient. Maybe alphas should generally 
-# be greater than or equal to 1? That would help make the `x1_to_z1` type functions
-# proportional to the `z1_to_x1` functions, for example.
-# But weirdly, the z1 and z2 functions cross sooner with alpha=1 (for both) than alpha=1.5
-# Shouldn't a higher alpha make people more impatient? Ohhh wait it's actually that z1 is 
-# above z2. Which is indeed what we want! But weirdly when alpha=1, z2 still goes above z1
+
+# But weirdly when alpha=1, z2 still goes above z1
 # just later. It's like the order of the "hump" has been reversed compared to when alpha < 1
 # (Actually maybe just for very small alpha, cause alpha=0.5 still shows a green "hump" first)
 # I wonder why, with alpha=1, we see z2 overtake z1, even later on? I notice it's shortly after 
 # x2 crosses over x1.
-# Does that threshold at alpha=1 make sense? alpha=0 threshold is where people start
-# preferring longer wait-times. But what is meant by alpha < 1? I guess it really is just
-# because it affects the scaling in relation to the beta-dependent equations?
 
-# Scenario: everyone starts at home and wants to go to work
-# Also try this with beta1 = beta2 = 0, then with 0.1
+#  ----------
+# | Scenario |
+#  ----------
+# Everyone starts at home and wants to go to work
+# Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
+
 # ICs and parameters
 init x1=1, x2=0, z1=0, z2=0
 param alpha1=0.2, alpha2=0.2, beta1=0, beta2=0
@@ -155,14 +134,10 @@ aux z2_x2 = z2_to_x2
 # totals
 aux total = x1 + x2 + z1 + z2
 
-# Why am I seeing that z1in and z2in both start at 0.5? The resulting z1 and z2 curves do
-# *not* jump to 0.5 after the first time step (in fact, they never do)
-# Look with beta2=3 for the example I was considering
-# Notice also that z1out is greater in the *beginning* but z2out remains about the same (0.1) for some while
-
 done
 
-# Notes to self
+#
+# Notes to self (Marty please ignore)
 # ------------------------------------------------------------------
 
 # Interpretation
@@ -198,3 +173,17 @@ done
 # param b1=1,b2=1d
 
 # What would be the difference between b1 and beta1?
+
+#
+# alpha1 : impatience (all else constant, higher alpha -> fewer people want to leave)
+# beta1  : travel (in)efficiency from congestion (size of corridor leaving x1 going to x2)
+# lp : number of people who want to leave their patch ("leaving people")
+# a1 : 0 or 1, turn "leaving" on and off to simulate diurnal demand patterns
+# gamma : transportation infrastructure inefficiency (state of the road; all else 
+#         constant, higher inefficiency means fewer people arriving because of 
+#         congestion/low capacity)
+
+# Why am I seeing that z1in and z2in both start at 0.5? The resulting z1 and z2 curves do
+# *not* jump to 0.5 after the first time step (in fact, they never do)
+# Look with beta2=3 for the example I was considering
+# Notice also that z1out is greater in the *beginning* but z2out remains about the same (0.1) for some while
