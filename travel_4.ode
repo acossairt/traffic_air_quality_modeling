@@ -11,8 +11,8 @@
 # | Main PDEs |
 #  -----------
 # alternatively naming scheme: az1x1 for "arriving" and lx1z1 for "leaving"
-dx1/dt = z1_to_x1 + z2_to_x1 - x1_to_z1 - x1_to_z2
-dx2/dt = z1_to_x2 + z2_to_x2 - x2_to_z1 - x2_to_z2
+dx1/dt = delay(z1_to_x1,d) + delay(z2_to_x1,d) - x1_to_z1 - x1_to_z2
+dx2/dt = delay(z1_to_x2,d) + delay(z2_to_x2,d) - x2_to_z1 - x2_to_z2
 dz1/dt = x1_to_z1 + x2_to_z1 - z1_to_x1 - z1_to_x2
 dz2/dt = x1_to_z2 + x2_to_z2 - z2_to_x1 - z2_to_x2
 
@@ -68,6 +68,31 @@ x2_to_z2 = a2 * exp(-alpha2 * z2 * beta2) * x2**lp / 2
 # Note that currently we do not prevent people from turning around and returning
 # to their original patch.
 
+#  -----------
+# | Challenge |
+#  -----------
+#
+# Cars should not be able to enter the highway and then immediately exit at their
+# destination. There should be a non-zero travel time (say 10 minutes if there's
+# no congestion, for example). How to represent this?
+#
+# Could try to shift the whole function to the right. But that only gives a delay from
+# the first time step. What about all the subsequent cars that enter the freeway? They
+# should also not be able to exit immediately...
+#
+# I think [z1 + 0.8]*z1 (in place of z1 everywhere) should make the traffic not
+# exit until z1 is >= 0.2. But that also means sometimes the traffic just never exits...
+# and that's not right either...
+#
+# Try delay diff eq's? Might want delay(z1,d) in both places, but for now starting with just the linear variable
+# For some reason this doesn't delay?
+# But it also seems it doesn't delay when I use the diff eqs themselves...
+#
+#z1_to_x1 = exp(-beta1 * z1) * delay(z1, d) / 2
+#z2_to_x1 = exp(-beta2 * z2) * delay(z2, d) / 2
+#z1_to_x2 = exp(-beta1 * z1) * delay(z1, d) / 2
+#z2_to_x2 = exp(-beta2 * z2) * delay(z2, d) / 2
+
 z1_to_x1 = exp(-beta1 * z1) * z1 / 2
 z2_to_x1 = exp(-beta2 * z2) * z2 / 2
 z1_to_x2 = exp(-beta1 * z1) * z1 / 2
@@ -92,8 +117,14 @@ z2_to_x2 = exp(-beta2 * z2) * z2 / 2
 # ICs and parameters
 init x1=1, x2=0, z1=0, z2=0
 param alpha1=1, alpha2=1, beta1=5, beta2=10
+param d=10
 param a1=0.25,a2=0
 param lp=1
+# IC for the delay function
+x1(0)=1
+x2(0)=0
+z1(0)=0
+z2(0)=0
 
 # xppaut options
 @ total=60, dt=1
