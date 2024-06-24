@@ -47,10 +47,10 @@ dz2/dt = x1_to_z2 + x2_to_z2 - z2_to_x1 - z2_to_x2
 #   to leaving at all. Anti-sociality might decrease lp. At the moment, we set lp=1.
 # When beta1 = beta2, we assume the traffic is well-mixed. 
 
-x1_to_z1 = a1 * exp(-alpha1 * z1 * beta1) * x1**lp / 2
-x1_to_z2 = a1 * exp(-alpha1 * z2 * beta2) * x1**lp / 2
-x2_to_z1 = a2 * exp(-alpha2 * z1 * beta1) * x2**lp / 2
-x2_to_z2 = a2 * exp(-alpha2 * z2 * beta2) * x2**lp / 2
+x1_to_z1 = a1 * exp(-alpha1 * z1 * beta1) * x1**lp
+x1_to_z2 = a1 * exp(-alpha1 * z2 * beta2) * x1**lp
+x2_to_z1 = a2 * exp(-alpha2 * z1 * beta1) * x2**lp
+x2_to_z2 = a2 * exp(-alpha2 * z2 * beta2) * x2**lp
 
 
 #  --------------------
@@ -68,10 +68,10 @@ x2_to_z2 = a2 * exp(-alpha2 * z2 * beta2) * x2**lp / 2
 # Note that currently we do not prevent people from turning around and returning
 # to their original patch.
 
-z1_to_x1 = exp(-beta1 * z1) * z1 / 2
-z2_to_x1 = exp(-beta2 * z2) * z2 / 2
-z1_to_x2 = exp(-beta1 * z1) * z1 / 2
-z2_to_x2 = exp(-beta2 * z2) * z2 / 2
+z1_to_x1 = exp(-beta1 * z1) * z1
+z2_to_x1 = exp(-beta2 * z2) * z2
+z1_to_x2 = exp(-beta1 * z1) * z1
+z2_to_x2 = exp(-beta2 * z2) * z2
 
 # Could also define the functions this way
 #flux(a,b,impatience) = exp(-impatience*a)*b

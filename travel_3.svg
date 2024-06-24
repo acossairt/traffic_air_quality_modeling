@@ -1,0 +1,532 @@
+<!-- Uncomment following when using your own custom external stylesheet.-->
+<!--
+<?xml-stylesheet type="text/css" href="xppaut-stylesheet.css" ?>
+-->
+<svg  xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink" font-size="12pt" width="640" height="400">
+
+
+      <defs>
+          <circle class="xpppointP" id = "xpppointP"  r = "1"  stroke-width = "1"/>
+          <circle class="xppbead" id = "xppbead"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointD" id = "xpppointD"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointA" id = "xpppointA"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointB" id = "xpppointB"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointC" id = "xpppointC"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointT" id = "xpppointT"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointS" id = "xpppointS"  r = "1"  stroke-width = "1"/>
+          <circle class="xpppointK" id = "xpppointK"  r = "3"  stroke-width = "0.75"/>
+          <circle class="xpppointF" id = "xpppointF"  r = "2"  stroke-width = "0"/>
+      </defs>
+
+
+
+      <!-- Comment out the following style block when using your own custom external stylesheet.-->
+      <!-- As a starting point for your custom external stylesheet, consider copying the style 
+           information (between but not including CDATA tags) to a file named xppaut-stylesheet.css 
+       -->
+      <style type="text/css">
+           <![CDATA[
+      
+                 circle.xpppointP {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointD {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointA {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointB {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointC {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointT {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointS {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointK {
+                    stroke-width: 1.0;
+                 }
+
+                 circle.xpppointF {
+                    stroke-width: 1.0;
+                 }
+
+                 line.xppaxes {
+                    stroke: #000000;
+                 }
+                 line.xppboxaxes {
+                    stroke: #000000;
+                 }
+                 line.xppdfield {
+                    stroke: #000000;
+                 }
+                 line.xpplineb {
+                    stroke: #000000;
+                 }
+                 line.xpplinea {
+                    stroke-dasharray: 2,8;
+                    stroke-width: 2;
+                    stroke: #000000;
+                 }
+                 line.xppline0 {
+                    stroke: #000000;
+                 }
+                 line.xppline1 {
+                    stroke-width: 1;
+                    stroke: #FF0000;
+                 }
+                 line.xppline2 {
+                    stroke: #F06400;
+                 }
+                 line.xppline3 {
+                    stroke: #FFA500;
+                 }
+                 line.xppline4 {
+                    stroke: #FFCD00;
+                 }
+                 line.xppline5 {
+                    stroke: #C8C800;
+                 }
+                 line.xppline6 {
+                    stroke: #00FF00;
+                 }
+                 line.xppline7 {
+                    stroke: #32CD32;
+                 }
+                 line.xppline8 {
+                    stroke: #00C8C8;
+                 }
+                 line.xppline9 {
+                    stroke: #0000FF;
+                 }
+                 line.xpplinec {
+                    stroke: #000000;
+                 }
+                 
+                 text.xpptext {
+                    font-family: sans-serif;
+                    font-size  : 1em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 text.xppyaxislabelh {
+                    font-family: sans-serif;
+                    font-size  : 1em;
+                    stroke	: none;
+                    fill	: none;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 text.xppyaxislabelv {
+                    font-family: sans-serif;
+                    font-size  : 1em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 text.xppaxestext {
+                    font-family: sans-serif;
+                    font-size  : 1em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 
+                 text.xpptext0 {
+                    font-family: sans-serif;
+                    font-size  : 0.5em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 
+                 text.xpptext1 {
+                    font-family: sans-serif;
+                    font-size  : 0.75em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 
+                 text.xpptext2 {
+                    font-family: sans-serif;
+                    font-size  : 1em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 
+                 text.xpptext3 {
+                    font-family: sans-serif;
+                    font-size  : 1.25em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+                 
+                 text.xpptext4 {
+                    font-family: sans-serif;
+                    font-size  : 1.5em;
+                    stroke	: #000000;
+                    fill	: #000000;
+                    baseline-shift:-33%;
+                    dominant-baseline: central;
+                 }
+           ]]>
+      </style>
+
+<g>
+      <line class="xppline0"  x1="144"  y1="121" x2="144"   y2="121" />
+      <line class="xppline0"  x1="144"  y1="121" x2="151"   y2="180" />
+      <line class="xppline0"  x1="151"  y1="180" x2="159"   y2="191" />
+      <line class="xppline0"  x1="159"  y1="191" x2="166"   y2="204" />
+      <line class="xppline0"  x1="166"  y1="204" x2="174"   y2="217" />
+      <line class="xppline0"  x1="174"  y1="217" x2="181"   y2="229" />
+      <line class="xppline0"  x1="181"  y1="229" x2="189"   y2="241" />
+      <line class="xppline0"  x1="189"  y1="241" x2="196"   y2="253" />
+      <line class="xppline0"  x1="196"  y1="253" x2="204"   y2="263" />
+      <line class="xppline0"  x1="204"  y1="263" x2="211"   y2="272" />
+      <line class="xppline0"  x1="211"  y1="272" x2="219"   y2="280" />
+      <line class="xppline0"  x1="219"  y1="280" x2="226"   y2="286" />
+      <line class="xppline0"  x1="226"  y1="286" x2="234"   y2="291" />
+      <line class="xppline0"  x1="234"  y1="291" x2="241"   y2="294" />
+      <line class="xppline0"  x1="241"  y1="294" x2="249"   y2="297" />
+      <line class="xppline0"  x1="249"  y1="297" x2="256"   y2="299" />
+      <line class="xppline0"  x1="256"  y1="299" x2="264"   y2="301" />
+      <line class="xppline0"  x1="264"  y1="301" x2="271"   y2="302" />
+      <line class="xppline0"  x1="271"  y1="302" x2="279"   y2="303" />
+      <line class="xppline0"  x1="279"  y1="303" x2="286"   y2="304" />
+      <line class="xppline0"  x1="286"  y1="304" x2="294"   y2="304" />
+      <line class="xppline0"  x1="294"  y1="304" x2="301"   y2="305" />
+      <line class="xppline0"  x1="301"  y1="305" x2="309"   y2="305" />
+      <line class="xppline0"  x1="309"  y1="305" x2="316"   y2="305" />
+      <line class="xppline0"  x1="316"  y1="305" x2="324"   y2="306" />
+      <line class="xppline0"  x1="324"  y1="306" x2="331"   y2="306" />
+      <line class="xppline0"  x1="331"  y1="306" x2="339"   y2="306" />
+      <line class="xppline0"  x1="339"  y1="306" x2="346"   y2="306" />
+      <line class="xppline0"  x1="346"  y1="306" x2="354"   y2="306" />
+      <line class="xppline0"  x1="354"  y1="306" x2="361"   y2="306" />
+      <line class="xppline0"  x1="361"  y1="306" x2="369"   y2="306" />
+      <line class="xppline0"  x1="369"  y1="306" x2="377"   y2="306" />
+      <line class="xppline0"  x1="377"  y1="306" x2="384"   y2="306" />
+      <line class="xppline0"  x1="384"  y1="306" x2="392"   y2="306" />
+      <line class="xppline0"  x1="392"  y1="306" x2="399"   y2="306" />
+      <line class="xppline0"  x1="399"  y1="306" x2="407"   y2="306" />
+      <line class="xppline0"  x1="407"  y1="306" x2="414"   y2="306" />
+      <line class="xppline0"  x1="414"  y1="306" x2="422"   y2="306" />
+      <line class="xppline0"  x1="422"  y1="306" x2="429"   y2="306" />
+      <line class="xppline0"  x1="429"  y1="306" x2="437"   y2="306" />
+      <line class="xppline0"  x1="437"  y1="306" x2="444"   y2="306" />
+      <line class="xppline0"  x1="444"  y1="306" x2="452"   y2="306" />
+      <line class="xppline0"  x1="452"  y1="306" x2="459"   y2="306" />
+      <line class="xppline0"  x1="459"  y1="306" x2="467"   y2="306" />
+      <line class="xppline0"  x1="467"  y1="306" x2="474"   y2="306" />
+      <line class="xppline0"  x1="474"  y1="306" x2="482"   y2="306" />
+      <line class="xppline0"  x1="482"  y1="306" x2="489"   y2="306" />
+      <line class="xppline0"  x1="489"  y1="306" x2="497"   y2="306" />
+      <line class="xppline0"  x1="497"  y1="306" x2="504"   y2="306" />
+      <line class="xppline0"  x1="504"  y1="306" x2="512"   y2="306" />
+      <line class="xppline0"  x1="512"  y1="306" x2="519"   y2="306" />
+      <line class="xppline0"  x1="519"  y1="306" x2="527"   y2="306" />
+      <line class="xppline0"  x1="527"  y1="306" x2="534"   y2="306" />
+      <line class="xppline0"  x1="534"  y1="306" x2="542"   y2="306" />
+      <line class="xppline0"  x1="542"  y1="306" x2="549"   y2="306" />
+      <line class="xppline0"  x1="549"  y1="306" x2="557"   y2="306" />
+      <line class="xppline0"  x1="557"  y1="306" x2="564"   y2="306" />
+      <line class="xppline0"  x1="564"  y1="306" x2="572"   y2="306" />
+      <line class="xppline0"  x1="572"  y1="306" x2="579"   y2="306" />
+      <line class="xppline0"  x1="579"  y1="306" x2="587"   y2="306" />
+      <line class="xppline0"  x1="587"  y1="306" x2="595"   y2="306" />
+</g>
+<g>
+      <line class="xppline1"  x1="144"  y1="306" x2="144"   y2="306" />
+      <line class="xppline1"  x1="144"  y1="306" x2="151"   y2="288" />
+      <line class="xppline1"  x1="151"  y1="288" x2="159"   y2="265" />
+      <line class="xppline1"  x1="159"  y1="265" x2="166"   y2="242" />
+      <line class="xppline1"  x1="166"  y1="242" x2="174"   y2="219" />
+      <line class="xppline1"  x1="174"  y1="219" x2="181"   y2="197" />
+      <line class="xppline1"  x1="181"  y1="197" x2="189"   y2="177" />
+      <line class="xppline1"  x1="189"  y1="177" x2="196"   y2="158" />
+      <line class="xppline1"  x1="196"  y1="158" x2="204"   y2="141" />
+      <line class="xppline1"  x1="204"  y1="141" x2="211"   y2="126" />
+      <line class="xppline1"  x1="211"  y1="126" x2="219"   y2="114" />
+      <line class="xppline1"  x1="219"  y1="114" x2="226"   y2="105" />
+      <line class="xppline1"  x1="226"  y1="105" x2="234"   y2="98" />
+      <line class="xppline1"  x1="234"  y1="98" x2="241"   y2="92" />
+      <line class="xppline1"  x1="241"  y1="92" x2="249"   y2="88" />
+      <line class="xppline1"  x1="249"  y1="88" x2="256"   y2="85" />
+      <line class="xppline1"  x1="256"  y1="85" x2="264"   y2="82" />
+      <line class="xppline1"  x1="264"  y1="82" x2="271"   y2="80" />
+      <line class="xppline1"  x1="271"  y1="80" x2="279"   y2="79" />
+      <line class="xppline1"  x1="279"  y1="79" x2="286"   y2="78" />
+      <line class="xppline1"  x1="286"  y1="78" x2="294"   y2="77" />
+      <line class="xppline1"  x1="294"  y1="77" x2="301"   y2="77" />
+      <line class="xppline1"  x1="301"  y1="77" x2="309"   y2="76" />
+      <line class="xppline1"  x1="309"  y1="76" x2="316"   y2="76" />
+      <line class="xppline1"  x1="316"  y1="76" x2="324"   y2="76" />
+      <line class="xppline1"  x1="324"  y1="76" x2="331"   y2="75" />
+      <line class="xppline1"  x1="331"  y1="75" x2="339"   y2="75" />
+      <line class="xppline1"  x1="339"  y1="75" x2="346"   y2="75" />
+      <line class="xppline1"  x1="346"  y1="75" x2="354"   y2="75" />
+      <line class="xppline1"  x1="354"  y1="75" x2="361"   y2="75" />
+      <line class="xppline1"  x1="361"  y1="75" x2="369"   y2="75" />
+      <line class="xppline1"  x1="369"  y1="75" x2="377"   y2="75" />
+      <line class="xppline1"  x1="377"  y1="75" x2="384"   y2="75" />
+      <line class="xppline1"  x1="384"  y1="75" x2="392"   y2="75" />
+      <line class="xppline1"  x1="392"  y1="75" x2="399"   y2="75" />
+      <line class="xppline1"  x1="399"  y1="75" x2="407"   y2="75" />
+      <line class="xppline1"  x1="407"  y1="75" x2="414"   y2="75" />
+      <line class="xppline1"  x1="414"  y1="75" x2="422"   y2="75" />
+      <line class="xppline1"  x1="422"  y1="75" x2="429"   y2="75" />
+      <line class="xppline1"  x1="429"  y1="75" x2="437"   y2="75" />
+      <line class="xppline1"  x1="437"  y1="75" x2="444"   y2="75" />
+      <line class="xppline1"  x1="444"  y1="75" x2="452"   y2="75" />
+      <line class="xppline1"  x1="452"  y1="75" x2="459"   y2="75" />
+      <line class="xppline1"  x1="459"  y1="75" x2="467"   y2="75" />
+      <line class="xppline1"  x1="467"  y1="75" x2="474"   y2="75" />
+      <line class="xppline1"  x1="474"  y1="75" x2="482"   y2="75" />
+      <line class="xppline1"  x1="482"  y1="75" x2="489"   y2="75" />
+      <line class="xppline1"  x1="489"  y1="75" x2="497"   y2="75" />
+      <line class="xppline1"  x1="497"  y1="75" x2="504"   y2="75" />
+      <line class="xppline1"  x1="504"  y1="75" x2="512"   y2="75" />
+      <line class="xppline1"  x1="512"  y1="75" x2="519"   y2="75" />
+      <line class="xppline1"  x1="519"  y1="75" x2="527"   y2="75" />
+      <line class="xppline1"  x1="527"  y1="75" x2="534"   y2="75" />
+      <line class="xppline1"  x1="534"  y1="75" x2="542"   y2="75" />
+      <line class="xppline1"  x1="542"  y1="75" x2="549"   y2="75" />
+      <line class="xppline1"  x1="549"  y1="75" x2="557"   y2="75" />
+      <line class="xppline1"  x1="557"  y1="75" x2="564"   y2="75" />
+      <line class="xppline1"  x1="564"  y1="75" x2="572"   y2="75" />
+      <line class="xppline1"  x1="572"  y1="75" x2="579"   y2="75" />
+      <line class="xppline1"  x1="579"  y1="75" x2="587"   y2="75" />
+      <line class="xppline1"  x1="587"  y1="75" x2="595"   y2="75" />
+</g>
+<g>
+      <line class="xppline7"  x1="144"  y1="260" x2="144"   y2="260" />
+      <line class="xppline7"  x1="144"  y1="260" x2="151"   y2="267" />
+      <line class="xppline7"  x1="151"  y1="267" x2="159"   y2="274" />
+      <line class="xppline7"  x1="159"  y1="274" x2="166"   y2="279" />
+      <line class="xppline7"  x1="166"  y1="279" x2="174"   y2="283" />
+      <line class="xppline7"  x1="174"  y1="283" x2="181"   y2="286" />
+      <line class="xppline7"  x1="181"  y1="286" x2="189"   y2="290" />
+      <line class="xppline7"  x1="189"  y1="290" x2="196"   y2="293" />
+      <line class="xppline7"  x1="196"  y1="293" x2="204"   y2="296" />
+      <line class="xppline7"  x1="204"  y1="296" x2="211"   y2="298" />
+      <line class="xppline7"  x1="211"  y1="298" x2="219"   y2="300" />
+      <line class="xppline7"  x1="219"  y1="300" x2="226"   y2="302" />
+      <line class="xppline7"  x1="226"  y1="302" x2="234"   y2="303" />
+      <line class="xppline7"  x1="234"  y1="303" x2="241"   y2="304" />
+      <line class="xppline7"  x1="241"  y1="304" x2="249"   y2="304" />
+      <line class="xppline7"  x1="249"  y1="304" x2="256"   y2="305" />
+      <line class="xppline7"  x1="256"  y1="305" x2="264"   y2="305" />
+      <line class="xppline7"  x1="264"  y1="305" x2="271"   y2="306" />
+      <line class="xppline7"  x1="271"  y1="306" x2="279"   y2="306" />
+      <line class="xppline7"  x1="279"  y1="306" x2="286"   y2="306" />
+      <line class="xppline7"  x1="286"  y1="306" x2="294"   y2="306" />
+      <line class="xppline7"  x1="294"  y1="306" x2="301"   y2="306" />
+      <line class="xppline7"  x1="301"  y1="306" x2="309"   y2="306" />
+      <line class="xppline7"  x1="309"  y1="306" x2="316"   y2="306" />
+      <line class="xppline7"  x1="316"  y1="306" x2="324"   y2="306" />
+      <line class="xppline7"  x1="324"  y1="306" x2="331"   y2="306" />
+      <line class="xppline7"  x1="331"  y1="306" x2="339"   y2="306" />
+      <line class="xppline7"  x1="339"  y1="306" x2="346"   y2="306" />
+      <line class="xppline7"  x1="346"  y1="306" x2="354"   y2="306" />
+      <line class="xppline7"  x1="354"  y1="306" x2="361"   y2="306" />
+      <line class="xppline7"  x1="361"  y1="306" x2="369"   y2="306" />
+      <line class="xppline7"  x1="369"  y1="306" x2="377"   y2="306" />
+      <line class="xppline7"  x1="377"  y1="306" x2="384"   y2="306" />
+      <line class="xppline7"  x1="384"  y1="306" x2="392"   y2="306" />
+      <line class="xppline7"  x1="392"  y1="306" x2="399"   y2="306" />
+      <line class="xppline7"  x1="399"  y1="306" x2="407"   y2="306" />
+      <line class="xppline7"  x1="407"  y1="306" x2="414"   y2="306" />
+      <line class="xppline7"  x1="414"  y1="306" x2="422"   y2="306" />
+      <line class="xppline7"  x1="422"  y1="306" x2="429"   y2="306" />
+      <line class="xppline7"  x1="429"  y1="306" x2="437"   y2="306" />
+      <line class="xppline7"  x1="437"  y1="306" x2="444"   y2="306" />
+      <line class="xppline7"  x1="444"  y1="306" x2="452"   y2="306" />
+      <line class="xppline7"  x1="452"  y1="306" x2="459"   y2="306" />
+      <line class="xppline7"  x1="459"  y1="306" x2="467"   y2="306" />
+      <line class="xppline7"  x1="467"  y1="306" x2="474"   y2="306" />
+      <line class="xppline7"  x1="474"  y1="306" x2="482"   y2="306" />
+      <line class="xppline7"  x1="482"  y1="306" x2="489"   y2="306" />
+      <line class="xppline7"  x1="489"  y1="306" x2="497"   y2="306" />
+      <line class="xppline7"  x1="497"  y1="306" x2="504"   y2="306" />
+      <line class="xppline7"  x1="504"  y1="306" x2="512"   y2="306" />
+      <line class="xppline7"  x1="512"  y1="306" x2="519"   y2="306" />
+      <line class="xppline7"  x1="519"  y1="306" x2="527"   y2="306" />
+      <line class="xppline7"  x1="527"  y1="306" x2="534"   y2="306" />
+      <line class="xppline7"  x1="534"  y1="306" x2="542"   y2="306" />
+      <line class="xppline7"  x1="542"  y1="306" x2="549"   y2="306" />
+      <line class="xppline7"  x1="549"  y1="306" x2="557"   y2="306" />
+      <line class="xppline7"  x1="557"  y1="306" x2="564"   y2="306" />
+      <line class="xppline7"  x1="564"  y1="306" x2="572"   y2="306" />
+      <line class="xppline7"  x1="572"  y1="306" x2="579"   y2="306" />
+      <line class="xppline7"  x1="579"  y1="306" x2="587"   y2="306" />
+      <line class="xppline7"  x1="587"  y1="306" x2="595"   y2="306" />
+</g>
+<g>
+      <line class="xpplinec"  x1="144"  y1="306" x2="144"   y2="306" />
+      <line class="xpplinec"  x1="144"  y1="306" x2="151"   y2="259" />
+      <line class="xpplinec"  x1="151"  y1="259" x2="159"   y2="264" />
+      <line class="xpplinec"  x1="159"  y1="264" x2="166"   y2="269" />
+      <line class="xpplinec"  x1="166"  y1="269" x2="174"   y2="275" />
+      <line class="xpplinec"  x1="174"  y1="275" x2="181"   y2="281" />
+      <line class="xpplinec"  x1="181"  y1="281" x2="189"   y2="286" />
+      <line class="xpplinec"  x1="189"  y1="286" x2="196"   y2="291" />
+      <line class="xpplinec"  x1="196"  y1="291" x2="204"   y2="294" />
+      <line class="xpplinec"  x1="204"  y1="294" x2="211"   y2="297" />
+      <line class="xpplinec"  x1="211"  y1="297" x2="219"   y2="300" />
+      <line class="xpplinec"  x1="219"  y1="300" x2="226"   y2="301" />
+      <line class="xpplinec"  x1="226"  y1="301" x2="234"   y2="303" />
+      <line class="xpplinec"  x1="234"  y1="303" x2="241"   y2="304" />
+      <line class="xpplinec"  x1="241"  y1="304" x2="249"   y2="304" />
+      <line class="xpplinec"  x1="249"  y1="304" x2="256"   y2="305" />
+      <line class="xpplinec"  x1="256"  y1="305" x2="264"   y2="305" />
+      <line class="xpplinec"  x1="264"  y1="305" x2="271"   y2="306" />
+      <line class="xpplinec"  x1="271"  y1="306" x2="279"   y2="306" />
+      <line class="xpplinec"  x1="279"  y1="306" x2="286"   y2="306" />
+      <line class="xpplinec"  x1="286"  y1="306" x2="294"   y2="306" />
+      <line class="xpplinec"  x1="294"  y1="306" x2="301"   y2="306" />
+      <line class="xpplinec"  x1="301"  y1="306" x2="309"   y2="306" />
+      <line class="xpplinec"  x1="309"  y1="306" x2="316"   y2="306" />
+      <line class="xpplinec"  x1="316"  y1="306" x2="324"   y2="306" />
+      <line class="xpplinec"  x1="324"  y1="306" x2="331"   y2="306" />
+      <line class="xpplinec"  x1="331"  y1="306" x2="339"   y2="306" />
+      <line class="xpplinec"  x1="339"  y1="306" x2="346"   y2="306" />
+      <line class="xpplinec"  x1="346"  y1="306" x2="354"   y2="306" />
+      <line class="xpplinec"  x1="354"  y1="306" x2="361"   y2="306" />
+      <line class="xpplinec"  x1="361"  y1="306" x2="369"   y2="306" />
+      <line class="xpplinec"  x1="369"  y1="306" x2="377"   y2="306" />
+      <line class="xpplinec"  x1="377"  y1="306" x2="384"   y2="306" />
+      <line class="xpplinec"  x1="384"  y1="306" x2="392"   y2="306" />
+      <line class="xpplinec"  x1="392"  y1="306" x2="399"   y2="306" />
+      <line class="xpplinec"  x1="399"  y1="306" x2="407"   y2="306" />
+      <line class="xpplinec"  x1="407"  y1="306" x2="414"   y2="306" />
+      <line class="xpplinec"  x1="414"  y1="306" x2="422"   y2="306" />
+      <line class="xpplinec"  x1="422"  y1="306" x2="429"   y2="306" />
+      <line class="xpplinec"  x1="429"  y1="306" x2="437"   y2="306" />
+      <line class="xpplinec"  x1="437"  y1="306" x2="444"   y2="306" />
+      <line class="xpplinec"  x1="444"  y1="306" x2="452"   y2="306" />
+      <line class="xpplinec"  x1="452"  y1="306" x2="459"   y2="306" />
+      <line class="xpplinec"  x1="459"  y1="306" x2="467"   y2="306" />
+      <line class="xpplinec"  x1="467"  y1="306" x2="474"   y2="306" />
+      <line class="xpplinec"  x1="474"  y1="306" x2="482"   y2="306" />
+      <line class="xpplinec"  x1="482"  y1="306" x2="489"   y2="306" />
+      <line class="xpplinec"  x1="489"  y1="306" x2="497"   y2="306" />
+      <line class="xpplinec"  x1="497"  y1="306" x2="504"   y2="306" />
+      <line class="xpplinec"  x1="504"  y1="306" x2="512"   y2="306" />
+      <line class="xpplinec"  x1="512"  y1="306" x2="519"   y2="306" />
+      <line class="xpplinec"  x1="519"  y1="306" x2="527"   y2="306" />
+      <line class="xpplinec"  x1="527"  y1="306" x2="534"   y2="306" />
+      <line class="xpplinec"  x1="534"  y1="306" x2="542"   y2="306" />
+      <line class="xpplinec"  x1="542"  y1="306" x2="549"   y2="306" />
+      <line class="xpplinec"  x1="549"  y1="306" x2="557"   y2="306" />
+      <line class="xpplinec"  x1="557"  y1="306" x2="564"   y2="306" />
+      <line class="xpplinec"  x1="564"  y1="306" x2="572"   y2="306" />
+      <line class="xpplinec"  x1="572"  y1="306" x2="579"   y2="306" />
+      <line class="xpplinec"  x1="579"  y1="306" x2="587"   y2="306" />
+      <line class="xpplinec"  x1="587"  y1="306" x2="595"   y2="306" />
+</g>
+      <line class="xppaxes"  x1="144"  y1="306" x2="595"   y2="306" />
+      <line class="xppaxes"  x1="144"  y1="51" x2="144"   y2="329" />
+      <line class="xppboxaxes"  x1="144"  y1="51" x2="595"   y2="51" />
+      <line class="xppboxaxes"  x1="595"  y1="51" x2="595"   y2="329" />
+      <line class="xppaxes"  x1="595"  y1="329" x2="144"   y2="329" />
+      <line class="xppaxes"  x1="144"  y1="329" x2="144"   y2="51" />
+      <line class="xppaxes"  x1="144"  y1="306" x2="153"   y2="306" />
+      <line class="xppboxaxes"  x1="595"  y1="306" x2="586"   y2="306" />
+
+      <text class="xppaxestext" text-anchor="end" x="129"  y="306"
+      >0</text>
+      <line class="xppaxes"  x1="144"  y1="260" x2="153"   y2="260" />
+      <line class="xppboxaxes"  x1="595"  y1="260" x2="586"   y2="260" />
+
+      <text class="xppaxestext" text-anchor="end" x="129"  y="260"
+      >0.2</text>
+      <line class="xppaxes"  x1="144"  y1="214" x2="153"   y2="214" />
+      <line class="xppboxaxes"  x1="595"  y1="214" x2="586"   y2="214" />
+
+      <text class="xppaxestext" text-anchor="end" x="129"  y="214"
+      >0.4</text>
+      <line class="xppaxes"  x1="144"  y1="167" x2="153"   y2="167" />
+      <line class="xppboxaxes"  x1="595"  y1="167" x2="586"   y2="167" />
+
+      <text class="xppaxestext" text-anchor="end" x="129"  y="167"
+      >0.6</text>
+      <line class="xppaxes"  x1="144"  y1="121" x2="153"   y2="121" />
+      <line class="xppboxaxes"  x1="595"  y1="121" x2="586"   y2="121" />
+
+      <text class="xppaxestext" text-anchor="end" x="129"  y="121"
+      >0.8</text>
+      <line class="xppaxes"  x1="144"  y1="75" x2="153"   y2="75" />
+      <line class="xppboxaxes"  x1="595"  y1="75" x2="586"   y2="75" />
+
+      <text class="xppaxestext" text-anchor="end" x="129"  y="75"
+      >1</text>
+
+      <text class="xppyaxislabelv" text-anchor="middle" x="0"  y="0"
+      transform="rotate(-90,75,180) translate(75,180)"
+      >x1</text>
+
+      <text class="xppyaxislabelh" text-anchor="end" x="132"  y="11"
+      >x1</text>
+      <line class="xppaxes"  x1="144"  y1="329" x2="144"   y2="320" />
+      <line class="xppboxaxes"  x1="144"  y1="51" x2="144"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="144"  y="354"
+      >0</text>
+      <line class="xppaxes"  x1="219"  y1="329" x2="219"   y2="320" />
+      <line class="xppboxaxes"  x1="219"  y1="51" x2="219"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="219"  y="354"
+      >10</text>
+      <line class="xppaxes"  x1="294"  y1="329" x2="294"   y2="320" />
+      <line class="xppboxaxes"  x1="294"  y1="51" x2="294"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="294"  y="354"
+      >20</text>
+      <line class="xppaxes"  x1="369"  y1="329" x2="369"   y2="320" />
+      <line class="xppboxaxes"  x1="369"  y1="51" x2="369"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="369"  y="354"
+      >30</text>
+      <line class="xppaxes"  x1="444"  y1="329" x2="444"   y2="320" />
+      <line class="xppboxaxes"  x1="444"  y1="51" x2="444"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="444"  y="354"
+      >40</text>
+      <line class="xppaxes"  x1="519"  y1="329" x2="519"   y2="320" />
+      <line class="xppboxaxes"  x1="519"  y1="51" x2="519"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="519"  y="354"
+      >50</text>
+      <line class="xppaxes"  x1="595"  y1="329" x2="595"   y2="320" />
+      <line class="xppboxaxes"  x1="595"  y1="51" x2="595"   y2="60" />
+
+      <text class="xppaxestext" text-anchor="middle" x="595"  y="354"
+      >60</text>
+
+      <text class="xppaxestext" text-anchor="middle" x="369"  y="379"
+      >t</text>
+</svg>
