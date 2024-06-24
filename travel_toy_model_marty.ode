@@ -71,10 +71,10 @@ d22 = a2 * exp(-alpha2 * z2) * x2**lp
 # Note that currently we do not prevent people from turning around and returning
 # to their original patch.
 
-a11 = exp(-beta1 * z1) * z1
-a21 = exp(-beta2 * z2) * z2
-a12 = exp(-beta1 * z1) * z1
-a22 = exp(-beta2 * z2) * z2
+a11 = exp(-beta1 * z1) * z1**lp
+a21 = exp(-beta2 * z2) * z2**lp
+a12 = exp(-beta1 * z1) * z1**lp
+a22 = exp(-beta2 * z2) * z2**lp
 
 # Could also define the functions this way
 #flux(a,b,impatience) = exp(-impatience*a)*b
