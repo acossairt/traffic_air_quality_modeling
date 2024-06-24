@@ -15,9 +15,10 @@
 
 dx1/dt = a11 + a21 - d11 - d12
 dx2/dt = a12 + a22 - d21 - d22
-dz1/dt = d11 + d21 - a11 - a12
-dz2/dt = d12 + d22 - a21 - a22
-
+dz112/dt = d11 + d21 - a12
+dz121/dt = d11 + d21 - a11
+dz212/dt = d12 + d22 - a22
+dz221/dt = d12 + d22 - a21
 
 #  -------------------
 # | Leaving functions |
@@ -50,10 +51,10 @@ dz2/dt = d12 + d22 - a21 - a22
 #   to leaving at all. Anti-sociality might decrease lp. At the moment, we set lp=1.
 # When beta1 = beta2, we assume the traffic is well-mixed. 
 
-d11 = p1* exp(-alpha1 * z1) * x1**lp
-d12 = p1* exp(-alpha2 * z2) * x1**lp
-d21 = p2 * exp(-alpha1 * z1) * x2**lp
-d22 = p2 * exp(-alpha2 * z2) * x2**lp
+d11 = p1* exp(-alpha1 * z112) * x1**lp
+d12 = p1* exp(-alpha2 * z212) * x1**lp
+d21 = p2 * exp(-alpha1 * z121) * x2**lp
+d22 = p2 * exp(-alpha2 * z221) * x2**lp
 
 
 #  --------------------
@@ -71,10 +72,10 @@ d22 = p2 * exp(-alpha2 * z2) * x2**lp
 # Note that currently we do not prevent people from turning around and returning
 # to their original patch.
 
-a11 = exp(-beta1 * z1) * z1**lp
-a21 = exp(-beta2 * z2) * z2**lp
-a12 = exp(-beta1 * z1) * z1**lp
-a22 = exp(-beta2 * z2) * z2**lp
+a11 = exp(-beta1 * z121) * z121**lp
+a21 = exp(-beta2 * z221) * z221**lp
+a12 = exp(-beta1 * z112) * z112**lp
+a22 = exp(-beta2 * z212) * z212**lp
 # Marty said to raise z1 and z2 to the power lp so that exiting isn't multiplied
 # by the whole population in the corridors... right? Didn't totally understand that.
 # People exit when they reach their exit, right? They don't really have a choice...
@@ -96,15 +97,15 @@ a22 = exp(-beta2 * z2) * z2**lp
 # Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
 
 # ICs and parameters
-init x1=1, x2=0, z1=0, z2=0
+init x1=1, x2=0, z112=0, z121=0, z212=0, z221=0
 param alpha1=1, alpha2=1, beta1=5, beta2=10
 param p1=1,p2=0
 param lp=1
 
 # xppaut options
 @ total=10, meth=qualst
-@ nplot=4
-@ xp=t, yp=x1, xp2=t, yp2=x2, xp3=t, yp3=z1, xp4=t, yp4=z2
+@ nplot=6
+@ xp=t, yp=x1, xp2=t, yp2=x2, xp3=t, yp3=z112, xp4=t, yp4=z121, xp5=t, yp5=z212, xp6=t, yp6=z221
 @ colormap=2
 @ ylo=-0.1, yhi=1.1
 @ xlo=0, xhi=12
@@ -130,7 +131,7 @@ aux z1_x2 = a12
 aux z2_x1 = a21
 aux z2_x2 = a22
 # totals
-aux total = x1 + x2 + z1 + z2
+aux total = x1 + x2 + z112 + z121 + z212 + z221
 
 done
 
