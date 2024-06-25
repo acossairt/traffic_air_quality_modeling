@@ -13,12 +13,12 @@
 # | Main ODEs |
 #  -----------
 
-dx1/dt = a11 + a21 - d11 - d12
-dx2/dt = a12 + a22 - d21 - d22
-dz112/dt = d11 + d21 - a12
-dz121/dt = d11 + d21 - a11
-dz212/dt = d12 + d22 - a22
-dz221/dt = d12 + d22 - a21
+dx/dt = a1x + a2x - dx1 - dx2
+dy/dt = a1y + a2y - dy1 - dy2
+dz1xy/dt = dx1 - a1y
+dz1yx/dt = dy1 - a1x
+dz2xy/dt = dx2 - a2y
+dz2yx/dt = dy2 - a2x
 
 #  -------------------
 # | Leaving functions |
@@ -51,10 +51,10 @@ dz221/dt = d12 + d22 - a21
 #   to leaving at all. Anti-sociality might decrease lp. At the moment, we set lp=1.
 # When beta1 = beta2, we assume the traffic is well-mixed. 
 
-d11 = p1* exp(-alpha1 * z112) * x1**lp
-d12 = p1* exp(-alpha2 * z212) * x1**lp
-d21 = p2 * exp(-alpha1 * z121) * x2**lp
-d22 = p2 * exp(-alpha2 * z221) * x2**lp
+dx1 = p1* exp(-alpha1 * z1xy) * x**lp
+dx2 = p1* exp(-alpha2 * z2xy) * x**lp
+dy1 = p2 * exp(-alpha1 * z1yx) * y**lp
+dy2 = p2 * exp(-alpha2 * z2yx) * y**lp
 
 
 #  --------------------
@@ -72,10 +72,10 @@ d22 = p2 * exp(-alpha2 * z221) * x2**lp
 # Note that currently we do not prevent people from turning around and returning
 # to their original patch.
 
-a11 = exp(-beta1 * z121) * z121**lp
-a21 = exp(-beta2 * z221) * z221**lp
-a12 = exp(-beta1 * z112) * z112**lp
-a22 = exp(-beta2 * z212) * z212**lp
+a1x = exp(-beta1 * z1yx) * z1yx**lp
+a2x = exp(-beta2 * z2yx) * z2yx**lp
+a1y = exp(-beta1 * z1xy) * z1xy**lp
+a2y = exp(-beta2 * z2xy) * z2xy**lp
 # Marty said to raise z1 and z2 to the power lp so that exiting isn't multiplied
 # by the whole population in the corridors... right? Didn't totally understand that.
 # People exit when they reach their exit, right? They don't really have a choice...
@@ -97,7 +97,7 @@ a22 = exp(-beta2 * z212) * z212**lp
 # Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
 
 # ICs and parameters
-init x1=1, x2=0, z112=0, z121=0, z212=0, z221=0
+init x=1, y=0, z1xy=0, z1yx=0, z2xy=0, z2yx=0
 param alpha1=1, alpha2=1, beta1=5, beta2=10
 param p1=1,p2=0
 param lp=1
@@ -105,33 +105,33 @@ param lp=1
 # xppaut options
 @ total=10, meth=qualst
 @ nplot=6
-@ xp=t, yp=x1, xp2=t, yp2=x2, xp3=t, yp3=z112, xp4=t, yp4=z121, xp5=t, yp5=z212, xp6=t, yp6=z221
+@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=z1xy, xp4=t, yp4=z1yx, xp5=t, yp5=z2xy, xp6=t, yp6=z2yx
 @ colormap=2
 @ ylo=-0.1, yhi=1.1
 @ xlo=0, xhi=12
 
 # auxiliary variables for plotting fluxes
 # total population arriving in / leaving the patches
-aux x1in = a11 + a21
-aux x2in = a12 + a22
-aux x1out = d11 + d12
-aux x2out = d21 + d22
-# total population arriving in / leaving the corridors
-aux z1in = d11 + d21
-aux z2in = d12 + d22
-aux z1out = a11 + a12
-aux z2out = a21 + a22
+aux xin = a1x + a2x
+aux xout = dx1 + dx2
+aux yin = a1y + a2y
+aux yout = dy1 + dy2
 # population of each transition
-aux x1_z1 = d11
-aux x1_z2 = d12
-aux x2_z1 = d21
-aux x2_z2 = d22
-aux z1_x1 = a11
-aux z1_x2 = a12
-aux z2_x1 = a21
-aux z2_x2 = a22
+aux x_z1 = dx1
+aux x_z2 = dx2
+aux y_z1 = dy1
+aux y_z2 = dy2
+aux z1_x = a1x
+aux z1_y = a1y
+aux z2_x = a2x
+aux z2_y = a2y
+# total population arriving in / leaving the corridors
+aux z1in = dx1 + dy1
+aux z1out = a1x + a1y
+aux z2in = dx2 + dy2
+aux z2out = a2x + a2y
 # totals
-aux total = x1 + x2 + z112 + z121 + z212 + z221
+aux total = x + y + z1xy + z1yx + z2xy + z2yx
 
 done
 
