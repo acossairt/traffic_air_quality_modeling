@@ -1,13 +1,24 @@
 # Toy model - 06/03/2024
-# Population dynamics of two patches x1 (home) and x2 (work) with two connecting 
-# links z1 and z2. It should always be true that x1+x2+z1+z2=1.
+# Population dynamics of two patches x (home) and y (work) with two connecting 
+# links z1xy, z1yx, z2xy, and z2yx.
+# It should always be true that x+y+z1+z2=1.
 
-# d11  : population leaving patch 1 and entering the first corridor (z1)
-# d12  : population leaving patch 1 and entering the second corridor (z2)
-# a11 : population leaving z1 and entering patch 1
-# a21 : population leaving z2 and entering patch 1
+# dx1  : population leaving patch x and entering the first corridor (z1)
+# dx2  : population leaving patch x and entering the second corridor (z2)
+# dy1  : population leaving patch y and entering the first corridor (z1)
+# dy2  : population leaving patch y and entering the second corridor (z2)
+# a1x  : population leaving z1 and entering patch x
+# a2x  : population leaving z2 and entering patch x
+# a1y  : population leaving z1 and entering patch y
+# a2y  : population leaving z2 and entering patch y
+# z1xy : population in z1 traveling in the lane heading from x to y
+# z1yx : population in z1 traveling in the lane heading from y to x
+# z2xy : population in z2 traveling in the lane heading from x to y
+# z2yx : population in z2 traveling in the lane heading from y to x
 
 # read subscripts as from i to j, aij = arrive from i to j,  dij = depart from i to j
+# for corridors, each corridor has two lanes (one for each direction) 
+# read as "corridor k from i to j", zkij = in corridor k, in lane heading from i to j
 
 #  -----------
 # | Main ODEs |
@@ -25,14 +36,13 @@ dz2yx/dt = dy2 - a2x
 #  -------------------
 # What determines if a person will leave their current patch and enter a road?
 # At maximum, the number of people who want to leave a given patch to enter a given
-# road is the population of that patch (x1 or x2) divided by the number of roads (in
-# this case 2). Note that this division is important, or else you effectively have
-# "clones" of each driver.
+# road in one time step is the population of that patch (x or y) times the time step
+# (which is very small)
 # The actual value will be less than the maximum as a function of 1) diurnal
 # demand patterns and 2) congestion.
 #
-# Overarching demand is given by parameters p1 and p2. If p1=1, everyone in x1 
-# wants to leave; if p1=0, no one in x1 wants to leave. Same for p2 and x2.
+# Overarching demand is given by parameters p1 and p2. If p1=1, everyone in x 
+# wants to leave; if p1=0, no one in x wants to leave. Same for p2 and y.
 #
 # The presence of congestion on a road will exponentially decrease the number of people
 # who want to leave a patch and enter that road. This exponential decay is parameterized
@@ -51,7 +61,7 @@ dz2yx/dt = dy2 - a2x
 #   to leaving at all. Anti-sociality might decrease lp. At the moment, we set lp=1.
 # When beta1 = beta2, we assume the traffic is well-mixed. 
 
-dx1 = p1* exp(-alpha1 * z1xy) * x**lp
+dx = p1* exp(-alpha1 * z1xy) * x**lp
 dx2 = p1* exp(-alpha2 * z2xy) * x**lp
 dy1 = p2 * exp(-alpha1 * z1yx) * y**lp
 dy2 = p2 * exp(-alpha2 * z2yx) * y**lp
@@ -60,8 +70,8 @@ dy2 = p2 * exp(-alpha2 * z2yx) * y**lp
 #  --------------------
 # | Arriving functions |
 #  --------------------
-# What determines how many people exit the roads (z1 and z2) into each patch (x1 and 
-# x2)?
+# What determines how many people exit the roads (z1 and z2) into each patch (x and 
+# y)?
 # At maximum, the number of people who exit a road and arrive in a patch is the number
 # of people in that road (z1 or z2) divided by the number of patches (in this case 2).
 # The actual number declines exponentially with congestion, because congestion reduces
@@ -82,13 +92,13 @@ a2y = exp(-beta2 * z2xy) * z2xy**lp
 
 # Could also define the functions this way
 #flux(a,b,impatience) = exp(-impatience*a)*b
-#dx1/dt = flux(z,z,beta1) - flux(z,x1,alpha1)
+#dx/dt = flux(z,z,beta1) - flux(z,x,alpha1)
 
 #  -----------
 # | Challenge |
 #  -----------
 # I wonder why, with alpha=1, we see z2 overtake z1, even later on? I notice it's shortly after 
-# x2 crosses over x1.
+# y crosses over x.
 
 #  ----------
 # | Scenario |
@@ -141,7 +151,7 @@ done
 
 # Interpretation
 # - All else constant, higher z (more people in corridor) means LESS people leaving patch
-# - Higher x1 or x2 means MORE people leaving (though this is controlled by the power lp)
+# - Higher x or y means MORE people leaving (though this is controlled by the power lp)
 # - For arrivals, there is a tradeoff: higher z means lower coefficient (so less 
 #   efficient exiting the corridor, because congestion) but also higher constant (so
 #   more people exit corridor because there are more people in the corridor to begin with)
@@ -175,7 +185,7 @@ done
 
 #
 # alpha1 : impatience (all else constant, higher alpha -> fewer people want to leave)
-# beta1  : travel (in)efficiency from congestion (size of corridor leaving x1 going to x2)
+# beta1  : travel (in)efficiency from congestion (size of corridor leaving x going to y)
 # lp : number of people who want to leave their patch ("leaving people")
 # p1: 0 or 1, turn "leaving" on and off to simulate diurnal demand patterns
 # gamma : transportation infrastructure inefficiency (state of the road; all else 
