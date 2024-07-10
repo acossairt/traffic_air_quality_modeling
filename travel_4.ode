@@ -32,6 +32,11 @@ dz2xy/dt = dx2 - a2y - d2xys + as2xy
 dz2yx/dt = dy2 - a2x - d2yxs + as2yx
 ds/dt = d1xys + d1yxs + d2xys + d2yxs - as1xy - as1yx - as2xy - as2yx
 
+#  ------------------
+# | Helper functions |
+#  ------------------
+power(x,p)=if(x>0)then(x**p)else(0)
+
 #  -------------------
 # | Leaving functions |
 #  -------------------
@@ -68,10 +73,15 @@ ds/dt = d1xys + d1yxs + d2xys + d2yxs - as1xy - as1yx - as2xy - as2yx
 
 #dx1 = px*exp(-alpha1*z1xy)*exp(-beta1xy * z1xy)*power(x,lp)
 
-dx1 = px * exp(-alpha1 * beta1xy * z1xy) * x**lp
-dx2 = px * exp(-alpha2 * beta2xy * z2xy) * x**lp
-dy1 = py * exp(-alpha1 * beta1yx * z1yx) * y**lp
-dy2 = py * exp(-alpha2 * beta2yx * z2yx) * y**lp
+#power(x,pow) = if(x>0)then(x**pow)else(0)
+
+#step(x) = (atan(10*x) + pi/2)/pi
+#dx1 = px*exp(-alpha1*z1xy)*exp(-beta1xy * z1xy)*power(x,lp)
+
+dx1 = px * exp(-alpha1 * beta1xy * z1xy) * power(x,lp)
+dx2 = px * exp(-alpha2 * beta2xy * z2xy) * power(x,lp)
+dy1 = py * exp(-alpha1 * beta1yx * z1yx) * power(y,lp)
+dy2 = py * exp(-alpha2 * beta2yx * z2yx) * power(y,lp)
 
 # Leave a corridor and enter the urban sponge if conditions are too slow
 # Maybe above some threshold? We don't want everybody leaking out into the corridor
@@ -81,16 +91,18 @@ dy2 = py * exp(-alpha2 * beta2yx * z2yx) * y**lp
 # (presumably that's a function of congestion)
 # And how quickly will people WANT to exit corridor into urban sponge given congestion
 # Are we seeing Braess's paradox?
-d1xys = exp(-betas * s) * z1xy**lp
-d1yxs = exp(-betas * s) * z1yx**lp
-d2xys = exp(-betas * s) * z2xy**lp
-d2yxs = exp(-betas * s) * z2yx**lp
+# The following assumes people an enter the urban sponge basically instantaneously
+# and they are deterred by existing congestion within the urban sponge. The parameter
+# ps allows you to "turn the urban sponge on and off" (i.e. close the exits into the city)
+d1xys = ps * exp(-betas * s) * power(z1xy,lp)
+d1yxs = ps * exp(-betas * s) * power(z1yx,lp)
+d2xys = ps * exp(-betas * s) * power(z2xy,lp)
+d2yxs = ps * exp(-betas * s) * power(z2yx,lp)
 
 #d1xys = exp(-betas * s) * exp(beta1xy * z1xy) * z1xy**lp
 #d1yxs = exp(-betas * s) * exp(beta1yx * z1yx) * z1yx**lp
 #d2xys = exp(-betas * s) * exp(beta2xy * z2xy) * z2xy**lp
 #d2yxs = exp(-betas * s) * exp(beta2yx * z2yx) * z2yx**lp
-
 
 #  --------------------
 # | Arriving functions |
@@ -109,17 +121,17 @@ d2yxs = exp(-betas * s) * z2yx**lp
 
 # This decay is speed of exiting. But does that make sense? Should congestion behind 
 # you in traffic affect your speed of exiting?
-a1x = exp(-beta1yx * z1yx) * z1yx**lp 
-a2x = exp(-beta2yx * z2yx) * z2yx**lp
-a1y = exp(-beta1xy * z1xy) * z1xy**lp
-a2y = exp(-beta2xy * z2xy) * z2xy**lp
+a1x = exp(-beta1yx * z1yx) * power(z1yx,lp) 
+a2x = exp(-beta2yx * z2yx) * power(z2yx,lp)
+a1y = exp(-beta1xy * z1xy) * power(z1xy,lp)
+a2y = exp(-beta2xy * z2xy) * power(z2xy,lp)
 
 # Enter a corridor (z1 or z2) from the sponge (s) based on how many people are already 
 # in that corridor and the global proximity for that direction of travel
-as1xy = px * exp(-alpha1 * beta1xy * z1xy) * exp(-betas * s) * s**lp
-as1yx = py * exp(-alpha1 * beta1yx * z1yx) * exp(-betas * s) * s**lp
-as2xy = px * exp(-alpha2 * beta2xy * z2xy) * exp(-betas * s) * s**lp
-as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * s**lp
+as1xy = px * exp(-alpha1 * beta1xy * z1xy) * exp(-betas * s) * power(s,lp)
+as1yx = py * exp(-alpha1 * beta1yx * z1yx) * exp(-betas * s) * power(s,lp)
+as2xy = px * exp(-alpha2 * beta2xy * z2xy) * exp(-betas * s) * power(s,lp)
+as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * power(s,lp)
 # Marty said to raise z1 and z2 to the power lp so that exiting isn't multiplied
 # by the whole population in the corridors... right? Didn't totally understand that.
 # People exit when they reach their exit, right? They don't really have a choice...
@@ -145,7 +157,7 @@ as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * s**lp
 init x=1, y=0, z1xy=0, z1yx=0, z2xy=0, z2yx=0
 param alpha1=1, alpha2=1
 param beta1xy=5, beta1yx=5, beta2xy=10, beta2yx=10, betas=50
-param px=1,py=0
+param px=1,py=0, ps=1
 param lp=1
 
 # xppaut options
