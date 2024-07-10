@@ -154,14 +154,15 @@ as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * power(s,lp)
 # Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
 
 # ICs and parameters
-init x=1, y=0, z1xy=0, z1yx=0, z2xy=0, z2yx=0
+init x=1, y=0, z1xy=0, z1yx=0, z2xy=0, z2yx=0, s=0
 param alpha1=1, alpha2=1
-param beta1xy=5, beta1yx=5, beta2xy=10, beta2yx=10, betas=50
+param beta1xy=60, beta1yx=5, beta2xy=50, beta2yx=10, betas=1000
 param px=1,py=0, ps=1
-param lp=0.9
+param lp=0.1
+param N=1000000
 
 # xppaut options
-@ total=50, meth=qualst
+@ total=50, meth=stiff
 @ nplot=7
 @ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=z1xy, xp4=t, yp4=z1yx
 @ xp5=t, yp5=z2xy, xp6=t, yp6=z2yx, xp7=t, yp7=s
@@ -169,40 +170,49 @@ param lp=0.9
 @ ylo=-0.1, yhi=1.1
 @ xlo=0, xhi=50
 
-# auxiliary variables for plotting fluxes
-# total population arriving in / leaving the patches
-aux xin = a1x + a2x
-aux xout = dx1 + dx2
-aux yin = a1y + a2y
-aux yout = dy1 + dy2
-# population of each transition
-aux x_z1 = dx1
-aux x_z2 = dx2
-aux y_z1 = dy1
-aux y_z2 = dy2
-aux z1_x = a1x
-aux z1_y = a1y
-aux z2_x = a2x
-aux z2_y = a2y
-aux z1xy_s = d1xys
-aux z1yx_s = d1yxs
-aux z2xy_s = d2xys
-aux z2yx_s = d2yxs
-aux s_1xy = as1xy
-aux s_1yx = as1yx
-aux s_2xy = as2xy
-aux s_2yx = as2yx
-# total population arriving in / leaving the corridors
-aux z1in = dx1 + dy1
-aux z1out = a1x + a1y
-aux z2in = dx2 + dy2
-aux z2out = a2x + a2y
-# total population arriving in /  leaving the urban sponge
-aux s1in = d1xys + d1yxs
-aux s2in = d2xys + d2yxs
-# totals
-aux total = x + y + z1xy + z1yx + z2xy + z2yx
+# auxiliary variables for plotting fluxes and variables (with nicer names)
+aux home = x * N
+aux work = y * N
+aux highway1_to_work = z1xy * N
+aux highway1_to_home = z1yx * N
+aux highway2_to_work = z2xy * N
+aux highway2_to_home = z2yx * N
+aux urban_sponge = s * N
 
+# total population arriving in / leaving the patches
+aux home_in = a1x + a2x
+aux home_out = dx1 + dx2
+aux work_in = a1y + a2y
+aux work_out = dy1 + dy2
+# population of each transition
+aux from_home_to_highway1 = dx1
+aux from_home_to_highway2 = dx2
+aux from_work_to_highway1 = dy1
+aux from_work_to_highway2 = dy2
+aux from_highway1_to_home = a1x
+aux from_highway1_to_work = a1y
+aux from_highway2_to_home = a2x
+aux from_highway2_to_work = a2y
+aux from_highway1_work_lane_to_sponge = d1xys
+aux from_highway1_home_lane_to_sponge = d1yxs
+aux from_highway2_work_lane_to_sponge = d2xys
+aux from_highway2_home_lane_to_sponge = d2yxs
+aux from_highway1_to_sponge = d1xys + d1yxs
+aux from_highway2_to_sponge = d2xys + d2yxs
+aux from_sponge_to_highway1_work_lane = as1xy
+aux from_sponge_to_highway1_home_lane = as1yx
+aux from_sponge_to_highway2_work_lane = as2xy
+aux from_sponge_to_highway2_home_lane = as2yx
+# total population arriving in / leaving the corridors
+aux highway1_in = dx1 + dy1
+aux highway1_out = a1x + a1y
+aux highway2_in = dx2 + dy2
+aux highway2_out = a2x + a2y
+# total population arriving in /  leaving the urban sponge
+aux sponge_in = d1xys + d1yxs + d2xys + d2yxs
+aux sponge_out = as1xy + as1yx + as2xy + as2yx
+# totals
+aux total = x + y + z1xy + z1yx + z2xy + z2yx + s
 done
 
 #
