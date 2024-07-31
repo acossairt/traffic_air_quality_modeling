@@ -1,0 +1,274 @@
+# Toy model - 06/03/2024
+# Population dynamics of two patches x (home) and y (work) with two connecting 
+# links z1xy, z1yx, z2xy, and z2yx.
+# It should always be true that x+y+z1+z2=1.
+
+# dx1  : population leaving patch x and entering the first corridor (z1)
+# dx2  : population leaving patch x and entering the second corridor (z2)
+# dy1  : population leaving patch y and entering the first corridor (z1)
+# dy2  : population leaving patch y and entering the second corridor (z2)
+# a1x  : population leaving z1 and entering patch x
+# a2x  : population leaving z2 and entering patch x
+# a1y  : population leaving z1 and entering patch y
+# a2y  : population leaving z2 and entering patch y
+# z1xy : population in z1 traveling in the lane heading from x to y
+# z1yx : population in z1 traveling in the lane heading from y to x
+# z2xy : population in z2 traveling in the lane heading from x to y
+# z2yx : population in z2 traveling in the lane heading from y to x
+
+# read subscripts as from i to j, aij = arrive from i to j,  dij = depart from i to j
+# for corridors, each corridor has two lanes (one for each direction) 
+# read as "corridor k from i to j", zkij = in corridor k, in lane heading from i to j
+
+#  -----------
+# | Main ODEs |
+#  -----------
+
+dx/dt = a1x + a2x - dx1 - dx2
+dy/dt = a1y + a2y - dy1 - dy2
+dz1xy/dt = dx1 - a1y - d1xys + as1xy
+dz1yx/dt = dy1 - a1x - d1yxs + as1yx
+dz2xy/dt = dx2 - a2y - d2xys + as2xy
+dz2yx/dt = dy2 - a2x - d2yxs + as2yx
+ds/dt = d1xys + d1yxs + d2xys + d2yxs - as1xy - as1yx - as2xy - as2yx
+
+#  ------------------
+# | Helper functions |
+#  ------------------
+power(x,p)=if(x>0)then(x**p)else(0)
+
+#  -------------------
+# | Leaving functions |
+#  -------------------
+# What determines if a person will leave their current patch and enter a road?
+# At maximum, the number of people who want to leave a given patch to enter a given
+# road in one time step is the population of that patch (x or y) times the time step
+# (which is very small)
+# The actual value will be less than the maximum as a function of 1) diurnal
+# demand patterns and 2) congestion.
+#
+# Overarching demand is given by parameters px and py. If px=1, everyone in x 
+# wants to leave; if px=0, no one in x wants to leave. Same for py and y.
+#
+# The presence of congestion on a road will exponentially decrease the number of people
+# who want to leave a patch and enter that road. This exponential decay is parameterized
+# by 
+# - alpha1 and alpha2 (impatience): All else held constant, a higher alpha means FEWER 
+#   people in a patch will want to leave. Impatience may be different for each patch
+#   (e.g. people may be willing to bear more congestion when leaving home to go to work,
+#   whereas once at work, they may wait for congestion to decrease before returning home)
+# - beta1 and beta2 (inverse road capacity): The capacity of the roads affects how 
+#   number of cars gets translated to congestion (lower travel speeds). All else held 
+#   constant, a higher beta1 means the road z1 has LOWER capacity, and so will 
+#   experience MORE congestion (i.e. cars on z1 will exit into a patch more slowly).
+#   Therefore, a higher beta1 means fewer people will want to leave their patch to 
+#   enter z1. Same for beta2 and z2.
+# - lp (stands for "leaving people"): What proportion of the total population is open 
+#   to leaving at all. Anti-sociality might decrease lp. At the moment, we set lp=1.
+# When beta1 = beta2, we assume the traffic is well-mixed.
+
+#power(x,pow) = if(x>0)then(x**pow)else(0)
+
+#step(x) = (atan(10*x) + pi/2)/pi
+
+#dx1 = px*exp(-alpha1*z1xy)*exp(-beta1xy * z1xy)*power(x,lp)
+
+#power(x,pow) = if(x>0)then(x**pow)else(0)
+
+#step(x) = (atan(10*x) + pi/2)/pi
+#dx1 = px*exp(-alpha1*z1xy)*exp(-beta1xy * z1xy)*power(x,lp)
+
+dx1 = px * exp(-alpha1 * beta1xy * z1xy) * power(x,lp)
+dx2 = px * exp(-alpha2 * beta2xy * z2xy) * power(x,lp)
+dy1 = py * exp(-alpha1 * beta1yx * z1yx) * power(y,lp)
+dy2 = py * exp(-alpha2 * beta2yx * z2yx) * power(y,lp)
+
+# Leave a corridor and enter the urban sponge if conditions are too slow
+# Maybe above some threshold? We don't want everybody leaking out into the corridor
+# Higher congestion should lead to more people exiting and going into the sponge
+# But also more congestion in the sponge should lead to less people exiting
+# Need to think about -- how quickly can people exit the corridor into the urban sponge?
+# (presumably that's a function of congestion)
+# And how quickly will people WANT to exit corridor into urban sponge given congestion
+# Are we seeing Braess's paradox?
+# The following assumes people an enter the urban sponge basically instantaneously
+# and they are deterred by existing congestion within the urban sponge. The parameter
+# ps allows you to "turn the urban sponge on and off" (i.e. close the exits into the city)
+d1xys = ps * exp(-betas * s) * power(z1xy,lp)
+d1yxs = ps * exp(-betas * s) * power(z1yx,lp)
+d2xys = ps * exp(-betas * s) * power(z2xy,lp)
+d2yxs = ps * exp(-betas * s) * power(z2yx,lp)
+
+#d1xys = exp(-betas * s) * exp(beta1xy * z1xy) * z1xy**lp
+#d1yxs = exp(-betas * s) * exp(beta1yx * z1yx) * z1yx**lp
+#d2xys = exp(-betas * s) * exp(beta2xy * z2xy) * z2xy**lp
+#d2yxs = exp(-betas * s) * exp(beta2yx * z2yx) * z2yx**lp
+
+#  --------------------
+# | Arriving functions |
+#  --------------------
+# What determines how many people exit the roads (z1 and z2) into each patch (x and 
+# y)?
+# At maximum, the number of people who exit a road and arrive in a patch is the number
+# of people in that road (z1 or z2) divided by the number of patches (in this case 2).
+# The actual number declines exponentially with congestion, because congestion reduces
+# speed of travel (and therefore speed of arrivals). This is governed by the
+# congestion factor beta, which can be thought of as the inverse of road capacity.
+# A higher beta means a smaller road, so cars will exit more slowly, because they will
+# be stuck in traffic longer.
+# Note that currently we do not prevent people from turning around and returning
+# to their original patch.
+
+# This decay is speed of exiting. But does that make sense? Should congestion behind 
+# you in traffic affect your speed of exiting?
+a1x = exp(-beta1yx * z1yx) * power(z1yx,lp)
+a2x = exp(-beta2yx * z2yx) * power(z2yx,lp)
+a1y = exp(-beta1xy * z1xy) * power(z1xy,lp)
+a2y = exp(-beta2xy * z2xy) * power(z2xy,lp)
+
+# Enter a corridor (z1 or z2) from the sponge (s) based on how many people are already 
+# in that corridor and the global proximity for that direction of travel
+as1xy = px * exp(-alpha1 * beta1xy * z1xy) * exp(-betas * s) * power(s,lp)
+as1yx = py * exp(-alpha1 * beta1yx * z1yx) * exp(-betas * s) * power(s,lp)
+as2xy = px * exp(-alpha2 * beta2xy * z2xy) * exp(-betas * s) * power(s,lp)
+as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * power(s,lp)
+# Marty said to raise z1 and z2 to the power lp so that exiting isn't multiplied
+# by the whole population in the corridors... right? Didn't totally understand that.
+# People exit when they reach their exit, right? They don't really have a choice...
+# And why is this the same lp that we use to determine how many people depart x and y?
+
+# Could also define the functions this way
+#flux(a,b,impatience) = exp(-impatience*a)*b
+#dx/dt = flux(z,z,beta1) - flux(z,x,alpha1)
+
+#  -----------
+# | Challenge |
+#  -----------
+# I wonder why, with alpha=1, we see z2 overtake z1, even later on? I notice it's shortly after 
+# y crosses over x.
+
+#  ----------
+# | Scenario |
+#  ----------
+# Everyone starts at home and wants to go to work
+# Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
+
+# ICs and parameters
+init x=0.95, y=0, z1xy=0.01, z1yx=0.01, z2xy=0.01, z2yx=0.01, s=0.01
+param alpha1=1, alpha2=1
+param beta1xy=60, beta1yx=5, beta2xy=50, beta2yx=10, betas=1000
+param px=1,py=0, ps=1
+param lp=0.1
+param N=1
+# want N = 1000000
+param time_step=0.05
+# Make sure this really aligns with dt!
+
+# xppaut options
+@ total=50, meth=stiff, dt=0.05
+#meth=runge-kutta, dt=0.001
+@ nplot=4
+@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=z1xy, xp4=t, yp4=z2xy
+#@ nplot=7
+#@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=z1xy, xp4=t, yp4=z1yx
+#@ xp5=t, yp5=z2xy, xp6=t, yp6=z2yx, xp7=t, yp7=s
+@ colormap=2
+@ ylo=-0.1, yhi=1.1
+@ xlo=0, xhi=50
+
+# auxiliary variables for plotting fluxes and variables (with horrible names)
+aux x = x * N
+aux y = y * N
+aux z1_x_to_y = z1xy * N
+aux z1_y_to_x = z1yx * N
+aux z2_x_to_y = z2xy * N
+aux z2_y_to_x = z2yx * N
+aux s = s * N
+
+# total population arriving in / leaving the patches
+aux x_in = a1x + a2x
+aux x_out = dx1 + dx2
+aux y_in = a1y + a2y
+aux y_out = dy1 + dy2
+# population of each transition
+aux x_to_z1 = dx1
+aux x_to_z2 = dx2
+aux y_to_z1 = dy1
+aux y_to_z2 = dy2
+aux z1_to_x = a1x
+aux z1_to_y = a1y
+aux z2_to_x = a2x
+aux z2_to_y = a2y
+aux z1_xy_to_s = d1xys
+aux z1_yx_to_s = d1yxs
+aux z2_xy_to_s = d2xys
+aux z2_yx_to_s = d2yxs
+aux z1_to_s = d1xys + d1yxs
+aux z2_to_s = d2xys + d2yxs
+aux s_to_z1_xy = as1xy
+aux s_to_z1_yx = as1yx
+aux s_to_z2_xy = as2xy
+aux s_to_z2_yx = as2yx
+# total population arriving in / leaving the corridors
+aux z1_in = dx1 + dy1
+aux z1_out = a1x + a1y
+aux z2_in = dx2 + dy2
+aux z2_out = a2x + a2y
+# total population arriving in /  leaving the urban sponge
+aux s_in = d1xys + d1yxs + d2xys + d2yxs
+aux s_out = as1xy + as1yx + as2xy + as2yx
+# totals
+aux total = x + y + z1xy + z1yx + z2xy + z2yx + s
+done
+
+#
+# Notes to self (Marty please ignore)
+# ------------------------------------------------------------------
+
+# Interpretation
+# - All else constant, higher z (more people in corridor) means LESS people leaving patch
+# - Higher x or y means MORE people leaving (though this is controlled by the power lp)
+# - For arrivals, there is a tradeoff: higher z means lower coefficient (so less 
+#   efficient exiting the corridor, because congestion) but also higher constant (so
+#   more people exit corridor because there are more people in the corridor to begin with)
+# - Setting pxor py to zero simulates diurnal demand patterns -- everyone wants to leave
+#   home and go to work, or leave work and come home
+# - All else constant, higher impatience means fewer people want to leave patch
+# - All else constant, higher road_capacity means fewer people arriving at patch (because they
+#   are stuck in traffic for longer)
+
+# Scenarios
+# impatience > road_capacity means corridor size can accomodate more people than want to leave
+# impatience < road_capacity means more people want to leave than the corridor can accomodate
+
+# 1) impatience = 0.1, road_capacity = 0.5 converges around 6 hours, most stuck in traffic, equal number
+#    at home and at work by about 6 or 7 hours
+# 2) impatience = 0.5, road_capacity = 0.1 converges around 6 hours, most at home (eventually equal
+#    number at work, around 6 hours), fewer people stuck in traffic
+# 3) alpha1 = 0.5, alpha2 = 0.1, road_capacity = 0.1 converges around 4 or 5 hours, most at
+#    home, equal number in traffic and at work
+# 4) impatience = 0.1, beta1 = 0.5, beta2 = 0.1 converges around 4 or 5 hours, least at home,
+#    equal number in traffic and at work
+
+# Add back later
+# ------------------------------------------------------------------
+# b1 : 0 or 1, turn "arriving" on and off to simulate congestion (?)
+# arriving1 = b1*exp(-beta1*z)*z
+# arriving2 = b2*exp(-beta2*z)*z
+# param b1=1,b2=1d
+
+# What would be the difference between b1 and beta1?
+
+#
+# alpha1 : impatience (all else constant, higher alpha -> fewer people want to leave)
+# beta1  : travel (in)efficiency from congestion (size of corridor leaving x going to y)
+# lp : number of people who want to leave their patch ("leaving people")
+# px: 0 or 1, turn "leaving" on and off to simulate diurnal demand patterns
+# gamma : transportation infrastructure inefficiency (state of the road; all else 
+#         constant, higher inefficiency means fewer people arriving because of 
+#         congestion/low capacity)
+
+# Why am I seeing that z1in and z2in both start at 0.5? The resulting z1 and z2 curves do
+# *not* jump to 0.5 after the first time step (in fact, they never do)
+# Look with beta2=3 for the example I was considering
+# Notice also that z1out is greater in the *beginning* but z2out remains about the same (0.1) for some while
