@@ -1,7 +1,47 @@
-# Toy model - 06/03/2024
-# Population dynamics of two patches x (home) and y (work) with two connecting 
-# links z1xy, z1yx, z2xy, and z2yx.
-# It should always be true that x+y+z1+z2=1.
+# Toy model - 06/03/2024 - updated 10/21/2024
+# Population dynamics of two patches: p1 (home) and p2 (work) with two connecting 
+# corridors c1 and c2. Each corridor has two lanes: one heading towards p1, the other
+# towards p2.
+# It should always be true that p1 + p2 + c1 + c2 =1. (Population is conserved)
+# Populations in a patch or corridor will be denoted with a capital P.
+# Fluxes across patches and corridors will be denoted with a captial F.
+
+# | SCENARIO |
+# Let patches be nodes and corridors be edges in a graph. The degree of a patch is the
+# numer of corridors that it connects to. For now, let all corridors be bi-directional.
+# In a full transportation network, there will be many patches which may have multiple
+# connections (corridors) to each other. For simplicity, we will start with the simplest
+# scenario and increase complexity as follows:
+#   - Two patches, single corridor connecting them
+#   - Two patches, multiple corridors connecting them
+#   - Two patches, multiple corridors, and an urban sponge
+#   - Multiple patches (n), n-1 corridors, so each patch has degree 1
+#   - Multiple patches (n), multiple corridors per patch, so each patch has degree >= 1
+#   - Multiple patches (n), multiple corridors per patch, and urban sponges between
+#     corridors, so each patch has degree >=1 and each corridor also has degree >= 1.
+#
+# Then, we can go back through those same levels of complexity, but this time let some
+# corridors be uni-directional. In that case, each patch will have a degree_in and a 
+# degree_out, which will not necessarily be equal.
+
+
+#  ----------------
+# | Variable names |
+#  ----------------
+# P^p1      :  population in patch 1
+# P^p2      :  population in patch 2
+# P^c1_p1p2 : population in corridor 1 in the lane traveling from p1 to p2
+# P^c1_p2p1 : population in corridor 1 in the lane traveling from p2 to p1
+# P^c2_p1p2 : population in corridor 2 in the lane traveling from p1 to p2
+# P^c2_p2p1 : population in corridor 2 in the lane traveling from p2 to p1 
+# F_p1^c1   : flow from patch 1 into corridor 1 (previously dx1)
+# F_p2^c1   : flow from patch 2 into corridor 1
+# F_p1^c2   : flow from patch 1 into corridor 2
+# F_p2^c2   : flow from patch 2 into corridor 2
+# F_c1^p1   : flow from corridor 1 into patch 1
+# F_c2^p1   : flow from corridor 2 into patch 1
+# F_c1^p2   : flow from corridor 1 into patch 2
+# F_c2^p2   : flow from corridor 2 into patch 2
 
 # dx1  : population leaving patch x and entering the first corridor (z1)
 # dx2  : population leaving patch x and entering the second corridor (z2)
@@ -26,11 +66,11 @@
 
 dx/dt = a1x + a2x - dx1 - dx2
 dy/dt = a1y + a2y - dy1 - dy2
-dz1xy/dt = dx1 - a1y - d1xys + as1xy
-dz1yx/dt = dy1 - a1x - d1yxs + as1yx
-dz2xy/dt = dx2 - a2y - d2xys + as2xy
-dz2yx/dt = dy2 - a2x - d2yxs + as2yx
-ds/dt = d1xys + d1yxs + d2xys + d2yxs - as1xy - as1yx - as2xy - as2yx
+dz1xy/dt = dx1 - a1y + ds1xy - a1xys
+dz1yx/dt = dy1 - a1x + ds1yx - a1yxs
+dz2xy/dt = dx2 - a2y + ds2xy - a2xys
+dz2yx/dt = dy2 - a2x + ds2yx - a2yxs
+ds/dt = a1xys + a1yxs + a2xys + a2yxs - ds1xy - ds1yx - ds2xy - ds2yx
 
 #  ------------------
 # | Helper functions |
@@ -78,10 +118,48 @@ power(x,p)=if(x>0)then(x**p)else(0)
 #step(x) = (atan(10*x) + pi/2)/pi
 #dx1 = px*exp(-alpha1*z1xy)*exp(-beta1xy * z1xy)*power(x,lp)
 
-dx1 = px * exp(-alpha1 * beta1xy * z1xy) * power(x,lp)
-dx2 = px * exp(-alpha2 * beta2xy * z2xy) * power(x,lp)
-dy1 = py * exp(-alpha1 * beta1yx * z1yx) * power(y,lp)
-dy2 = py * exp(-alpha2 * beta2yx * z2yx) * power(y,lp)
+#dx1 = px * exp(-alpha1 * exp(beta1xy * z1xy)) * x
+#dx2 = px * exp(-alpha2 * exp(beta2xy * z2xy)) * x
+#dy1 = py * exp(-alpha1 * exp(beta1yx * z1yx)) * y
+#dy2 = py * exp(-alpha2 * exp(beta2yx * z2yx)) * y
+
+dx1 = px * exp(-(alpha1 * beta1xy) * z1xy) * x
+dx2 = px * exp(-(alpha2 * beta2xy) * z2xy) * x
+dy1 = py * exp(-(alpha1 * beta1yx) * z1yx) * y
+dy2 = py * exp(-(alpha2 * beta2yx) * z2yx) * y
+
+# Enter a corridor (z1 or z2) from the sponge (s) based on how many people are already 
+# in that corridor and the global proximity for that direction of travel
+ds1xy = px * exp(-alpha1 * beta1xy * z1xy) * exp(-betas * s) * power(s,lp)
+ds1yx = py * exp(-alpha1 * beta1yx * z1yx) * exp(-betas * s) * power(s,lp)
+ds2xy = px * exp(-alpha2 * beta2xy * z2xy) * exp(-betas * s) * power(s,lp)
+ds2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * power(s,lp)
+
+#  --------------------
+# | Arriving functions |
+#  --------------------
+# What determines how many people exit the roads (z1 and z2) into each patch (x and 
+# y)?
+# At maximum, the number of people who exit a road and arrive in a patch is the number
+# of people in that road (z1 or z2) divided by the number of patches (in this case 2).
+# THAT'S NOT TRUE! But how do you determine the actual boundary conditions?
+# The actual number declines exponentially with congestion, because congestion reduces
+# speed of travel (and therefore speed of arrivals). This is governed by the
+# congestion factor beta, which can be thought of as the inverse of road capacity.
+# A higher beta means a smaller road, so cars will exit more slowly, because they will
+# be stuck in traffic longer.
+
+# This decay is speed of exiting. But does that make sense? Should congestion behind 
+# you in traffic affect your speed of exiting?
+a1x = exp(-beta1yx * z1yx) * power(z1yx,lp)
+a2x = exp(-beta2yx * z2yx) * power(z2yx,lp)
+a1y = exp(-beta1xy * z1xy) * power(z1xy,lp)
+a2y = exp(-beta2xy * z2xy) * power(z2xy,lp)
+
+#a1x = exp(-exp(beta1yx * z1yx)) * power(z1yx,lp)
+#a2x = exp(-exp(beta2yx * z2yx)) * power(z2yx,lp)
+#a1y = exp(-exp(beta1xy * z1xy)) * power(z1xy,lp)
+#a2y = exp(-exp(beta2xy * z2xy)) * power(z2xy,lp)
 
 # Leave a corridor and enter the urban sponge if conditions are too slow
 # Maybe above some threshold? We don't want everybody leaking out into the corridor
@@ -94,58 +172,14 @@ dy2 = py * exp(-alpha2 * beta2yx * z2yx) * power(y,lp)
 # The following assumes people an enter the urban sponge basically instantaneously
 # and they are deterred by existing congestion within the urban sponge. The parameter
 # ps allows you to "turn the urban sponge on and off" (i.e. close the exits into the city)
-d1xys = ps * exp(-betas * s) * power(z1xy,lp)
-d1yxs = ps * exp(-betas * s) * power(z1yx,lp)
-d2xys = ps * exp(-betas * s) * power(z2xy,lp)
-d2yxs = ps * exp(-betas * s) * power(z2yx,lp)
-
-#d1xys = exp(-betas * s) * exp(beta1xy * z1xy) * z1xy**lp
-#d1yxs = exp(-betas * s) * exp(beta1yx * z1yx) * z1yx**lp
-#d2xys = exp(-betas * s) * exp(beta2xy * z2xy) * z2xy**lp
-#d2yxs = exp(-betas * s) * exp(beta2yx * z2yx) * z2yx**lp
-
-#  --------------------
-# | Arriving functions |
-#  --------------------
-# What determines how many people exit the roads (z1 and z2) into each patch (x and 
-# y)?
-# At maximum, the number of people who exit a road and arrive in a patch is the number
-# of people in that road (z1 or z2) divided by the number of patches (in this case 2).
-# The actual number declines exponentially with congestion, because congestion reduces
-# speed of travel (and therefore speed of arrivals). This is governed by the
-# congestion factor beta, which can be thought of as the inverse of road capacity.
-# A higher beta means a smaller road, so cars will exit more slowly, because they will
-# be stuck in traffic longer.
-# Note that currently we do not prevent people from turning around and returning
-# to their original patch.
-
-# This decay is speed of exiting. But does that make sense? Should congestion behind 
-# you in traffic affect your speed of exiting?
-a1x = exp(-beta1yx * z1yx) * power(z1yx,lp)
-a2x = exp(-beta2yx * z2yx) * power(z2yx,lp)
-a1y = exp(-beta1xy * z1xy) * power(z1xy,lp)
-a2y = exp(-beta2xy * z2xy) * power(z2xy,lp)
-
-# Enter a corridor (z1 or z2) from the sponge (s) based on how many people are already 
-# in that corridor and the global proximity for that direction of travel
-as1xy = px * exp(-alpha1 * beta1xy * z1xy) * exp(-betas * s) * power(s,lp)
-as1yx = py * exp(-alpha1 * beta1yx * z1yx) * exp(-betas * s) * power(s,lp)
-as2xy = px * exp(-alpha2 * beta2xy * z2xy) * exp(-betas * s) * power(s,lp)
-as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * power(s,lp)
-# Marty said to raise z1 and z2 to the power lp so that exiting isn't multiplied
-# by the whole population in the corridors... right? Didn't totally understand that.
-# People exit when they reach their exit, right? They don't really have a choice...
-# And why is this the same lp that we use to determine how many people depart x and y?
+a1xys = ps * exp(-betas * s) * power(z1xy,lp)
+a1yxs = ps * exp(-betas * s) * power(z1yx,lp)
+a2xys = ps * exp(-betas * s) * power(z2xy,lp)
+a2yxs = ps * exp(-betas * s) * power(z2yx,lp)
 
 # Could also define the functions this way
 #flux(a,b,impatience) = exp(-impatience*a)*b
 #dx/dt = flux(z,z,beta1) - flux(z,x,alpha1)
-
-#  -----------
-# | Challenge |
-#  -----------
-# I wonder why, with alpha=1, we see z2 overtake z1, even later on? I notice it's shortly after 
-# y crosses over x.
 
 #  ----------
 # | Scenario |
@@ -154,18 +188,20 @@ as2yx = py * exp(-alpha2 * beta2yx * z2yx) * exp(-betas * s) * power(s,lp)
 # Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
 
 # ICs and parameters
+param N=100
 init x=0.95, y=0, z1xy=0.01, z1yx=0.01, z2xy=0.01, z2yx=0.01, s=0.01
-param alpha1=1, alpha2=1
+#init x=0.95*N, y=0*N, z1xy=0.01*N, z1yx=0.01*N, z2xy=0.01*N, z2yx=0.01*N, s=0.01*N
+#init x=95, y=0, z1xy=1, z1yx=1, z2xy=1, z2yx=1, s=1
+param alpha1=0.7, alpha2=0.9
 param beta1xy=60, beta1yx=5, beta2xy=50, beta2yx=10, betas=1000
-param px=1,py=0, ps=1
+param px=1,py=0, ps=0
 param lp=0.1
-param N=1
 # want N = 1000000
 param time_step=0.05
 # Make sure this really aligns with dt!
 
 # xppaut options
-@ total=50, meth=stiff, dt=0.05
+@ total=120, meth=stiff, dt=0.05, BOUND=1000
 #meth=runge-kutta, dt=0.001
 @ nplot=4
 @ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=z1xy, xp4=t, yp4=z2xy
@@ -173,10 +209,12 @@ param time_step=0.05
 #@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=z1xy, xp4=t, yp4=z1yx
 #@ xp5=t, yp5=z2xy, xp6=t, yp6=z2yx, xp7=t, yp7=s
 @ colormap=2
+#@ ylo=-0.1*N, yhi=1.1*N
 @ ylo=-0.1, yhi=1.1
-@ xlo=0, xhi=50
+@ xlo=0, xhi=120
 
 # auxiliary variables for plotting fluxes and variables (with horrible names)
+# For some reason multiplying by N seems to do nothing?
 aux x = x * N
 aux y = y * N
 aux z1_x_to_y = z1xy * N
@@ -199,24 +237,24 @@ aux z1_to_x = a1x
 aux z1_to_y = a1y
 aux z2_to_x = a2x
 aux z2_to_y = a2y
-aux z1_xy_to_s = d1xys
-aux z1_yx_to_s = d1yxs
-aux z2_xy_to_s = d2xys
-aux z2_yx_to_s = d2yxs
-aux z1_to_s = d1xys + d1yxs
-aux z2_to_s = d2xys + d2yxs
-aux s_to_z1_xy = as1xy
-aux s_to_z1_yx = as1yx
-aux s_to_z2_xy = as2xy
-aux s_to_z2_yx = as2yx
+aux z1_xy_to_s = a1xys
+aux z1_yx_to_s = a1yxs
+aux z2_xy_to_s = a2xys
+aux z2_yx_to_s = a2yxs
+aux z1_to_s = a1xys + a1yxs
+aux z2_to_s = a2xys + a2yxs
+aux s_to_z1_xy = ds1xy
+aux s_to_z1_yx = ds1yx
+aux s_to_z2_xy = ds2xy
+aux s_to_z2_yx = ds2yx
 # total population arriving in / leaving the corridors
 aux z1_in = dx1 + dy1
 aux z1_out = a1x + a1y
 aux z2_in = dx2 + dy2
 aux z2_out = a2x + a2y
 # total population arriving in /  leaving the urban sponge
-aux s_in = d1xys + d1yxs + d2xys + d2yxs
-aux s_out = as1xy + as1yx + as2xy + as2yx
+aux s_in = a1xys + a1yxs + a2xys + a2yxs
+aux s_out = ds1xy + ds1yx + ds2xy + ds2yx
 # totals
 aux total = x + y + z1xy + z1yx + z2xy + z2yx + s
 done
