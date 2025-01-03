@@ -4,7 +4,9 @@ Dynamical systems modeling of transportation systems and their impacts on urban 
 The latest version of the model (as of November 13, 2024) is `travel_4_1021.ode` in XPPAUT and `travel_4.ipynb` in Julia. It involves two patches connected by two (bidirectional) corridors.
 
 ## Introduction
-The transportation system in the National Capital Territory (NCT) of Delhi, India is a complex network of vehicles, transit lines, and users of multiple types. Rising air pollution associated with this transportation system is a major public health challenge, and recent studies have estimated that poor air quality in Delhi reduces residents’ life expectancy by about 6 years \citep{ghude2016premature}. This system is bounded by the municipal boundaries of NCT, but the boundaries are permeable to the movement of air, vehicles, and people across political boundaries. We conceptualize the transportation system as consisting of *vehicles* (e.g. cars, trains, motorcycles, auto-rickshaws, pedestrians) which travel between \textit{patches} (e.g. residential areas, business districts) along *corridors* (e.g. highways, train lines) and emit pollutants at a certain rate depending on their travel speed and congestion levels. To conceptualize the wider social-ecological context, we can use the Coupled-Infrastructure Systems (CIS) framework shown in \autoref{fig:CIS_framework} \citep[][]{anderies2015understanding}.
+The transportation system in the National Capital Territory (NCT) of Delhi, India is a complex network of vehicles, transit lines, and users of multiple types. Rising air pollution associated with this transportation system is a major public health challenge, and recent studies have estimated that poor air quality in Delhi reduces residents’ life expectancy by about 6 years \citep{ghude2016premature}. This system is bounded by the municipal boundaries of NCT, but the boundaries are permeable to the movement of air, vehicles, and people across political boundaries. We conceptualize the transportation system as consisting of *vehicles* (e.g. cars, trains, motorcycles, auto-rickshaws, pedestrians) which travel between *patches* (e.g. residential areas, business districts) along *corridors* (e.g. highways, train lines) and emit pollutants at a certain rate depending on their travel speed and congestion levels. To conceptualize the wider social-ecological context, we can use the Coupled-Infrastructure Systems (CIS) framework shown in \autoref{fig:CIS_framework} \citep[][]{anderies2015understanding}.
+
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/images/CIS_PIRE_12_2023.png?raw=true)
 
 ## Research Questions
 Our objective is to build a general model of urban mobility systems, with NCT New Delhi as a prototyping case, to gain insight into the relationship between mobility infrastructure configurations, governance policies, and air quality. Specific research questions include:
@@ -13,13 +15,12 @@ Our objective is to build a general model of urban mobility systems, with NCT Ne
 - What is the impact on air pollution of increasing road connectivity by adding new corridors while keeping the same number of patches (increase parameter $K$, defined below)?
 - (Future work) How does information flow along links in the CIS to inform infrastructure investment decisions by PIP?
 
-## Why a bioeconomic model?
-Traditional models used by transportation engineers are highly specialized and often held in propriety by specific companies or municipalities. In the case of New Delhi, our team has been unable to access the core model used by urban transportation planners for the region. Additionally, these models assume a car-following model and homogeneous traffic flow (e.g. all cars, no smaller vehicles), which is not a reasonable assumption for many cities in the Global South, including New Delhi. Localized, spatially explicit data about traffic flows in New Delhi is also difficult to access, and data quality is a concern. As an alternative to data-driven modeling of transportation and air pollution, a bioeconomic stylized model may allow us to capture the key dynamics of the system in a qualitative manner useful to policy makers.
-
-**Insert figure**
-
 ## Model Background
-Suppose there are \textbf{$N$} patches, up to \textbf{$K$} corridors connecting each pair, and 1 total vehicles (this is a normalized value; we can think of it as a density). The state variables and parameters are listed below:
+
+The concept for this model is shown in \autoref{fig:conceptual_diagram} for a case with two patches and two connective corridors.
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/images/conceptual_framework.png?raw=true)
+
+In general, suppose there are $N$ patches, up to $K$ corridors connecting each pair, and 1 total vehicles (this is a normalized value; we can think of it as a density). The state variables and parameters are listed below:
 
 ### State Variables
 - $P^i$: population in patch $i$ (units: vehicles)
@@ -39,7 +40,7 @@ These parameters describe infrastructure capacity (such as the width of a highwa
 Here the total number of vehicles is conserved.
 
 ### Relationships between variables
-Because of the conservation law, the change in number of vehicles in any node (a patch, corridor, urban sponge, etc.) is determined by \textit{flow-in} minus \textit{flow-out}. The speed of fluxes into and out of corridors is density dependent.
+Because of the conservation law, the change in number of vehicles in any node (a patch, corridor, urban sponge, etc.) is determined by *flow-in* minus *flow-out*. The speed of fluxes into and out of corridors is density dependent.
 
 - $F^{\rightarrow k}[i,j]$: flux from patch $i$ into corridor $k$, with an ultimate destination of patch $j$.
 - $F^{k\rightarrow}[i,j]$: flux from corridor $k$ into patch $j$, where the origin was $i$.
@@ -146,7 +147,7 @@ $$
 This equation says that number of vehicles flowing out of corridor $k$ into patch $j$, with an origin of patch $i$, is proportional to the number of cars on the road $C^k[i,j]$ and inversely related to the congestion on the road $\beta^k[i,j] * C^k[i,j]$. There is no factor controlling sensitivity to congestion, because we assume anyone already traveling in a corridor will exit (reaching their final destination) at the earliest opportunity.
 
 ### Predicting emissions from traffic density
-Given a traffic density $C^k[i,j]$ on a given corridor which has jam density $C^k_{jam}[i,j] = 1 / \beta^k[i,j]$, we can compute average speeds from an alternative version of \textbf{Greenshield's model} and then predict emissions / vehicle using the \textbf{U-shaped curve}. 
+Given a traffic density $C^k[i,j]$ on a given corridor which has jam density $C^k_{jam}[i,j] = 1 / \beta^k[i,j]$, we can compute average speeds from an alternative version of **Greenshield's model** and then predict emissions / vehicle using the \textbf{U-shaped curve}. 
 
 #### Traffic density to average speed
 First, to compute average vehicle speeds, we will use an alternative to Greenshield's law. The typical Greenshield's model states:
@@ -177,6 +178,8 @@ $$
 
 Therefore, the road congestion parameter can now be written $\beta^k[i,j] = \frac{1}{2 C^k_{thresh}[i,j]}$. The shape of the function \autoref{eq:alternative_greenshields} is illustrated in \autoref{fig:greenshield} in purple, compared to the original Greenshield's model \autoref{eq:greenshield} in green. 
 
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/images/alternative_greenshields_model_2.png?raw=true)
+
 #### Average speeds to emission rates
 With average vehicle speeds in hand, we can estimate emission rates using the U-shaped curve. This empirical function depends on particular vehicle types, engine and fuel types, and location, and it relates CO2 emission rates (grams / unit distance) with average vehicle speeds (unit distance / time). We assume that very low average speeds (e.g. 5mph) are associated with stop-and-go traffic, and therefore high emission rates. Meanwhile, very high average speeds (e.g. $> 85$ mph) also lead to high emissions because of the energy required to sustain high speeds, and how quickly a vehicle can travel many miles. An example is shown in \autoref{fig:u-shaped_curve} with data from California \citep{barth2009traffic}. We will eventually procure similar data for NCT Delhi -- for now, we can use the California data as a proxy.
 
@@ -189,6 +192,7 @@ $$
 $$
 
 ## Formal model for demo case: two patches, two corridors
+
 For the simple system with two patches and two corridors shown in \autoref{fig:conceptual_diagram}, the system of equations is as follows:
 
 $$
@@ -284,11 +288,15 @@ And finally, emission rates are calculated:
 ## Analysis
 For the demo case, we find traffic flows and resulting emissions for 100 times steps with parameters $O^p[1]=1, O^p[2]=0$, $\alpha_1 = \alpha_2 = 1$, and $\beta^1[1,2] = 10$, $\beta^2[1,2] = 60$. That is, everyone wants to leave patch 1, no one wants to leave patch 2, all travelers have equal tolerance for congestion, and corridor 1 has much higher capacity than corridor 2. We start with all vehicles in patch 1 and no travelers in any of the other patches or corridors. The traffic flows for this case are shown in \autoref{fig:traffic_flows_1}. We see more travelers choosing corridor 1 over corridor 2, and the rush hour (period of high traffic) in corridor 1 is about 45 time steps, compared to corridor 2's rush hour of more than 100 time steps.
 
-**Insert figure**
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/traffic_flows_1.png?raw=true)
 
 The associated emissions over time for each corridor is shown in \autoref{fig:emissions}. We notice the curve for emissions rates for each corridor is almost identical to its associated population curve, with a bit of discretization. The final step (not shown) to calculate total emissions for a given part of the day is the integrate the area under the emissions curve for time $a$ to time $b$.
 
-**Insert figure**
+Emissions for C1:
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/julia_plots/congestion_to_emissions_C1_v1.png?raw=true)
+
+Emissions for C2:
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/julia_plots/congestion_to_emissions_C2_v1.png?raw=true)
 
 ## Discussion/Conclusion
 This exercise showed me the importance of dimensional analysis to developing a realistic model. At multiple phases of this project, I found myself questioning the realism of the model, or struggling to connect my first principles model with other models (such as Greenshield's model). The solution always came from a careful assessment of how to interpret each variable and parameter in terms of its units. 
