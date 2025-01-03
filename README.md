@@ -292,11 +292,7 @@ For the demo case, we find traffic flows and resulting emissions for 100 times s
 
 The associated emissions over time for each corridor is shown in \autoref{fig:emissions}. We notice the curve for emissions rates for each corridor is almost identical to its associated population curve, with a bit of discretization. The final step (not shown) to calculate total emissions for a given part of the day is the integrate the area under the emissions curve for time $a$ to time $b$.
 
-Emissions for C1:
-![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/julia_plots/congestion_to_emissions_C1_v1.png?raw=true)
-
-Emissions for C2:
-![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/julia_plots/congestion_to_emissions_C2_v1.png?raw=true)
+![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/julia_plots/congestion_to_emissions_C1_and_C2_β₁_10_β₂_60.png?raw=true)
 
 ## Discussion/Conclusion
 This exercise showed me the importance of dimensional analysis to developing a realistic model. At multiple phases of this project, I found myself questioning the realism of the model, or struggling to connect my first principles model with other models (such as Greenshield's model). The solution always came from a careful assessment of how to interpret each variable and parameter in terms of its units. 
