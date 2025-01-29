@@ -1,12 +1,6 @@
-# CURRENT ERROR
-# When compiling:
-# F__P1_C1= D_P1 * EXP(-(ALPHA1 * BETAC1P1P2) * P_P1 ) * P_P1  
-# illegal expression: P
-# D_P2*EXP(-(ALPHA1*BETAC1P2P1)*P_C1__P2P1)*P_P2
-#                              ^
-# Error allocating or compiling F__P2_C1
-
-# Toy model - 06/03/2024 - updated 10/21/2024
+#  ---------------------------------------------
+# | Toy model - 06/03/2024 - updated 10/21/2024 |
+#  ---------------------------------------------
 # Population dynamics of two patches: p1 (home) and p2 (work) with two connecting 
 # corridors c1 and c2. Each corridor has two lanes: one heading towards p1, the other
 # towards p2.
@@ -14,27 +8,8 @@
 # Populations in a patch or corridor will be denoted with a capital P.
 # Fluxes across patches and corridors will be denoted with a captial F.
 
-# | SCENARIO |
-# Let patches be nodes and corridors be edges in a graph. The degree of a patch is the
-# numer of corridors that it connects to. For now, let all corridors be bi-directional.
-# In a full transportation network, there will be many patches which may have multiple
-# connections (corridors) to each other. For simplicity, we will start with the simplest
-# scenario and increase complexity as follows:
-#   - Two patches, single corridor connecting them
-#   - Two patches, multiple corridors connecting them
-#   - Two patches, multiple corridors, and an urban sponge
-#   - Multiple patches (n), n-1 corridors, so each patch has degree 1
-#   - Multiple patches (n), multiple corridors per patch, so each patch has degree >= 1
-#   - Multiple patches (n), multiple corridors per patch, and urban sponges between
-#     corridors, so each patch has degree >=1 and each corridor also has degree >= 1.
-#
-# Then, we can go back through those same levels of complexity, but this time let some
-# corridors be uni-directional. In that case, each patch will have a degree_in and a 
-# degree_out, which will not necessarily be equal.
-
-
 #  --------------------------
-# | Regarding Variable names |
+# | A Note on Variable Names |
 #  --------------------------
 # Let pi indicate patch number i, and ck(pi,pj) be corridor k connecting pi to pj.
 # Ideally, k will equal the total number of connections between pi and pj.
@@ -83,29 +58,9 @@
 # F__c1_p2   : flow from corridor 1 into patch 2
 # F__c2_p2   : flow from corridor 2 into patch 2
 
-#  -----------
-# | Main ODEs |
-#  -----------
-
-P_p1' = F__c1_p1 + F__c2_p1 - F__p1_c1 - F__p1_c2
-P_p2' = F__c1_p2 + F__c2_p2 - F__p2_c1 - F__p2_c2
-P_c1__p1p2' = F__p1_c1 - F__c1_p2
-P_c1__p2p1' = F__p2_c1 - F__c1_p1
-P_c2__p1p2' = F__p1_c2 - F__c2_p2
-P_c2__p2p1' = F__p2_c2 - F__c2_p1
-
-# F_1__c1_2 : Flux into p1 on c1 originating from p2
-# From what to what along which corridor
-# Or F_{1 <- c1 <- 2} that is "Flux into - along - from"
-
-#  ------------------
-# | Helper functions |
-#  ------------------
-power(x,p)=if(x>0)then(x**p)else(0)
-
-#  -------------------
-# | Leaving functions |
-#  -------------------
+#  -------------------------------
+# | Parameters: Leaving functions |
+#  -------------------------------
 
 # The presence of congestion on a corridor will exponentially decrease the number of
 # people who want to leave a patch and enter a corridor. This exponential decay is
@@ -127,14 +82,9 @@ power(x,p)=if(x>0)then(x**p)else(0)
 # If d_p1=1, everyone in p1 wants to leave; if d_p1=0, no one in p1 wants to leave.
 # Same for d_p2 and p2.
 
-F__p1_c1 = d_p1 * exp(-(alpha1 * betac1p1p2) * P_c1__p1p2) * P_p1
-F__p2_c1 = d_p2 * exp(-(alpha1 * betac1p2p1) * P_c1__p2p1) * P_p2
-F__p1_c2 = d_p1 * exp(-(alpha1 * betac2p1p2) * P_c2__p1p2) * P_p1
-F__p2_c2 = d_p2 * exp(-(alpha1 * betac2p2p1) * P_c2__p2p1) * P_p2
-
-#  --------------------
-# | Arriving functions |
-#  --------------------
+#  -------------------------------
+# | Parameters: Arrival functions |
+#  -------------------------------
 # What determines how many people exit the roads (c1 and c2) into each patch
 # (p1 and p2)?
 # The number declines exponentially with congestion, because congestion reduces
@@ -149,6 +99,35 @@ F__p2_c2 = d_p2 * exp(-(alpha1 * betac2p2p1) * P_c2__p2p1) * P_p2
 # This decay is speed of exiting. But does that make sense? Should congestion behind 
 # you in traffic affect your speed of exiting?
 
+#  -----------
+# | Main ODEs |
+#  -----------
+
+P_p1' = F__c1_p1 + F__c2_p1 - F__p1_c1 - F__p1_c2
+P_p2' = F__c1_p2 + F__c2_p2 - F__p2_c1 - F__p2_c2
+P_c1__p1p2' = F__p1_c1 - F__c1_p2
+P_c1__p2p1' = F__p2_c1 - F__c1_p1
+P_c2__p1p2' = F__p1_c2 - F__c2_p2
+P_c2__p2p1' = F__p2_c2 - F__c2_p1
+
+#  ------------------
+# | Helper functions |
+#  ------------------
+power(x,p)=if(x>0)then(x**p)else(0)
+
+#  -------------------
+# | Leaving functions |
+#  -------------------
+
+F__p1_c1 = d_p1 * exp(-(alpha1 * betac1p1p2) * P_c1__p1p2) * P_p1
+F__p2_c1 = d_p2 * exp(-(alpha1 * betac1p2p1) * P_c1__p2p1) * P_p2
+F__p1_c2 = d_p1 * exp(-(alpha1 * betac2p1p2) * P_c2__p1p2) * P_p1
+F__p2_c2 = d_p2 * exp(-(alpha1 * betac2p2p1) * P_c2__p2p1) * P_p2
+
+#  --------------------
+# | Arriving functions |
+#  --------------------
+
 F__c1_p1 = exp(-betac1p2p1 * P_c1__p2p1) * power(P_c1__p2p1, lp)
 F__c1_p2 = exp(-betac1p1p2 * P_c1__p1p2) * power(P_c1__p1p2, lp)
 F__c2_p1 = exp(-betac2p2p1 * P_c2__p2p1) * power(P_c2__p2p1, lp)
@@ -158,14 +137,10 @@ F__c2_p2 = exp(-betac2p1p2 * P_c2__p1p2) * power(P_c2__p1p2, lp)
 #flux(a,b,impatience) = exp(-impatience*a)*b
 #dx/dt = flux(z,z,beta1) - flux(z,x,alpha1)
 
-#  ----------
-# | Scenario |
-#  ----------
-# Everyone starts at home and wants to go to work (d_p1 = 1, d_p2 = 0), nobody wants
-# to come back home.
-# Try this with beta1 = beta2 = 0 (implying infinite road capacity), then with 0.1
+#  --------------------
+# | ICs and parameters |
+#  --------------------
 
-# ICs and parameters
 param N=100
 init P_p1=0.95, P_p2=0, P_c1__p1p2=0.01, P_c1__p2p1=0.01, P_c2__p1p2=0.01, P_c2__p2p1=0.01
 param alpha1=0.7, alpha2=0.9
