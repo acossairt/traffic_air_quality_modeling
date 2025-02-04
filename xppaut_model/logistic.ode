@@ -1,0 +1,14 @@
+# Practice logistic model (for comparison with Julia)
+
+dN/dt = r*N*(1-N)
+
+##################
+# ICs and params #
+##################
+
+par r=0.1
+init N = 0.5
+
+@ total=10, meth=runge-kutta, dt=0.05
+@ xlo=0, xhi=101, ylo=0, yhi=1.1, xp=t, yp=N
+done
