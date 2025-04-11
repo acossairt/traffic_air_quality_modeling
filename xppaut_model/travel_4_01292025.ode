@@ -147,14 +147,14 @@ param time_step=0.05
 # Make sure this really aligns with dt!
 
 # xppaut options
-@ total=120, meth=stiff, dt=0.05, BOUND=1000
+@ total=100, meth=stiff, dt=0.05, BOUND=1000
 #meth=runge-kutta, dt=0.001
 @ nplot=4
 @ xp=t, yp=P_p1, xp2=t, yp2=P_p2, xp3=t, yp3=P_c1__p1p2, xp4=t, yp4=P_c1__p2p1
 #@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=P_c1__p1p2, xp4=t, yp4=P_c1__p2p1
 @ colormap=2
 @ ylo=-0.1, yhi=1.1
-@ xlo=0, xhi=120
+@ xlo=0, xhi=100
 
 # auxiliary variables for plotting fluxes and variables (with horrible names)
 # For some reason multiplying by N seems to do nothing?

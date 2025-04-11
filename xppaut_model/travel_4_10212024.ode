@@ -119,19 +119,29 @@ power(x,p)=if(x>0)then(x**p)else(0)
 # | Leaving functions |
 #  -------------------
 
-F__p1_c1 = d_p1 * exp(-(alpha1 * betac1p1p2) * P_c1__p1p2) * P_p1
-F__p2_c1 = d_p2 * exp(-(alpha1 * betac1p2p1) * P_c1__p2p1) * P_p2
-F__p1_c2 = d_p1 * exp(-(alpha1 * betac2p1p2) * P_c2__p1p2) * P_p1
-F__p2_c2 = d_p2 * exp(-(alpha1 * betac2p2p1) * P_c2__p2p1) * P_p2
+#F__p1_c1 = d_p1 * exp(-(alpha1 * betac1p1p2) * P_c1__p1p2) * P_p1
+#F__p2_c1 = d_p2 * exp(-(alpha2 * betac1p2p1) * P_c1__p2p1) * P_p2
+#F__p1_c2 = d_p1 * exp(-(alpha1 * betac2p1p2) * P_c2__p1p2) * P_p1
+#F__p2_c2 = d_p2 * exp(-(alpha2 * betac2p2p1) * P_c2__p2p1) * P_p2
+
+F__p1_c1 = d_p1 * exp(-(alpha1 * betac1) * P_c1__p1p2) * P_p1
+F__p2_c1 = d_p2 * exp(-(alpha2 * betac1) * P_c1__p2p1) * P_p2
+F__p1_c2 = d_p1 * exp(-(alpha1 * betac2) * P_c2__p1p2) * P_p1
+F__p2_c2 = d_p2 * exp(-(alpha2 * betac2) * P_c2__p2p1) * P_p2
 
 #  --------------------
 # | Arriving functions |
 #  --------------------
 
-F__c1_p1 = exp(-betac1p2p1 * P_c1__p2p1) * power(P_c1__p2p1, lp)
-F__c1_p2 = exp(-betac1p1p2 * P_c1__p1p2) * power(P_c1__p1p2, lp)
-F__c2_p1 = exp(-betac2p2p1 * P_c2__p2p1) * power(P_c2__p2p1, lp)
-F__c2_p2 = exp(-betac2p1p2 * P_c2__p1p2) * power(P_c2__p1p2, lp)
+#F__c1_p1 = exp(-betac1p2p1 * P_c1__p2p1) * power(P_c1__p2p1, lp)
+#F__c1_p2 = exp(-betac1p1p2 * P_c1__p1p2) * power(P_c1__p1p2, lp)
+#F__c2_p1 = exp(-betac2p2p1 * P_c2__p2p1) * power(P_c2__p2p1, lp)
+#F__c2_p2 = exp(-betac2p1p2 * P_c2__p1p2) * power(P_c2__p1p2, lp)
+
+F__c1_p1 = exp(-betac1 * P_c1__p2p1) * power(P_c1__p2p1, lp)
+F__c1_p2 = exp(-betac1 * P_c1__p1p2) * power(P_c1__p1p2, lp)
+F__c2_p1 = exp(-betac2 * P_c2__p2p1) * power(P_c2__p2p1, lp)
+F__c2_p2 = exp(-betac2 * P_c2__p1p2) * power(P_c2__p1p2, lp)
 
 # Could also define the functions this way
 #flux(a,b,impatience) = exp(-impatience*a)*b
@@ -142,23 +152,24 @@ F__c2_p2 = exp(-betac2p1p2 * P_c2__p1p2) * power(P_c2__p1p2, lp)
 #  --------------------
 
 param N=100
-init P_p1=0.95, P_p2=0, P_c1__p1p2=0.01, P_c1__p2p1=0.01, P_c2__p1p2=0.01, P_c2__p2p1=0.01
+init P_p1=0.96, P_p2=0, P_c1__p1p2=0.01, P_c1__p2p1=0.01, P_c2__p1p2=0.01, P_c2__p2p1=0.01
 param alpha1=0.7, alpha2=0.9
-param betac1p1p2=60, betac1p2p1=5, betac2p1p2=50, betac2p2p1=10
+param betac1=60, betac2=50
+#param betac1p1p2=60, betac1p2p1=60, betac2p1p2=50, betac2p2p1=50
 param d_p1=1,d_p2=0
 param lp=0.1
-# want N = 1000000
 param time_step=0.05
 # Make sure this really aligns with dt!
 
 # xppaut options
-@ total=120, meth=stiff, dt=0.05, BOUND=1000
+@ total=100, meth=stiff, dt=0.05, BOUND=1000
 #meth=runge-kutta, dt=0.001
 @ nplot=4
-@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=P_c1__p1p2, xp4=t, yp4=P_c2__p1p2
+#@ xp=t, yp=x, xp2=t, yp2=y, xp3=t, yp3=P_c1__p1p2, xp4=t, yp4=P_c2__p1p2
+@ xp=t, yp=P_p1, xp2=t, yp2=P_p2, xp3=t, yp3=P_c1__p1p2, xp4=t, yp4=P_c2__p1p2
 @ colormap=2
 @ ylo=-0.1, yhi=1.1
-@ xlo=0, xhi=120
+@ xlo=0, xhi=100
 
 # auxiliary variables for plotting fluxes and variables (with horrible names)
 # For some reason multiplying by N seems to do nothing?
