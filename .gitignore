@@ -1,2 +1,7 @@
+#Files ignored by git
+
 xpp.app
-.DS_Store
+
+#Ignore all checkpoint files
+
+.ipynb_checkpoints/
