@@ -1,0 +1,80 @@
+#simple bioeconomic model with individual entry.
+
+
+#define parameters--------------------------------------------------------
+
+par al11=0.1,al12=0.1,al2=0.1,A11=1,A12=1,A21=1,A22=1
+par S=1,h=1,dk=0.05,I=0.05,spow=10,Lmax=20,kfact=0.2
+par alpha=1,beta=1
+par p1=4.1209,p2=11.72,p3=34.1,p4=62.5,p5=25.86,p6=37.5,p7=62.5
+par mu1=1,mu2=1
+
+#-------------------------------------------------------------------------
+
+#define some hidden varaibles and functions-------------------------------
+
+f(x,a,b) = if(x>0)then(x**b/(a**b + x**b))else(0)
+l2max = min(1/(A21*x2*K), 1/(A22*x2*K))
+svar = (A21/A11 + A22/A12)*x2*k/x1
+l2opt = l2max*f(svar,1,spow)
+l11opt = (1 - A21*x2*l2opt*K)/(A11*x1)
+l12opt = (1 - A22*x2*l2opt*K)/(A12*x1)
+l2 = min(l2opt, Lmax)
+l11 = min(l11opt, Lmax-l2)
+l12 = min(l12opt, Lmax-l2-l11)
+Y11 = A11*x1*l11*h
+Y12 = A12*x1*l12*h
+Y2 = (A21+A22)*x2*l2*h*K
+Y21 = A21*x2*l2*h*K
+Y22 = A22*x2*l2*h*K
+K=h*kfact*r2
+
+r1= mu1 + alpha*0.25*(u1+u2+u3+u4)
+r2= mu2 + beta*0.33*(u5+u6+u7)
+
+#define auxiliary quantities-------------------------------------------------
+
+#define right hand sides-----------------------------------------------------
+
+dx1/dt = r1*x1*(1-x1) - al11*Y11 - al12*Y12
+dx2/dt = r2*x2*(1-x2) - al2*Y2
+#dh/dt =  b(Y1,Y2)  - d(Y1,Y2)
+#dK/dt = I - dk*K
+u[1..7]' = u[j]*(1 - u[j]^2 - v[j]^2) - (2*Pi/p[j])*v[j]
+v[1..7]' = v[j]*(1 - u[j]^2 - v[j]^2) + (2*Pi/p[j])*u[j]
+
+#conceptual model of oscillator
+#par p=1
+#u' = u*(1 - u^2 - v^2) - (2*Pi/p)*v
+#v' = v*(1 - u^2 - v^2) + (2*Pi/p)*u
+#init u=1,v=1
+
+init u[1..7]=1,v[1..7]=1
+int x1=1,x2=1
+
+#define some auxiliary variables
+
+
+aux per1 = 100*(Y11 + Y21)/h
+aux per2 = 100*(Y12 + Y22)/h
+aux wop1 = Y11
+aux wop2 = Y12
+aux irrout = Y2
+aux maxl2 = l2max
+aux lab2 = l2
+aux lab11 = l11
+aux lab12 = l12
+aux totlab1 = l11+l12
+aux switch = svar
+aux rain=r1
+aux stream=r2
+
+#--------------------------------------------------------------------------
+
+@ xlo=0,ylo=0,xhi=1.1,yhi=1.1
+@ xp=x1,yp=x2
+@ bounds=10000,maxstor=10000
+@ nmesh=120,total=100
+done
+
+

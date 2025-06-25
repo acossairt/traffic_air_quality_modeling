@@ -1,0 +1,32 @@
+# simple oscillator
+
+#define parameters
+
+
+#------------set parameters-----------------------
+
+par beta=30,amp=13.7,p=1 
+
+#--------------functions--------------------------
+
+# smooth pulse
+
+e=amp*exp(beta*(u-1))
+aux pulse=e
+
+aux resource = e
+#aux period = 2*Pi/p
+
+#----------differential equations------------------
+
+# autonomous oscillator -- u=cos(t) is asymptotically stable limit cycle
+
+u'=u*(1-u^2-v^2)-(2*Pi/p)*v
+v'=v*(1-u^2-v^2)+(2*Pi/p)*u
+cumr'= e
+
+init u=1,cumr=0
+
+done
+
+
