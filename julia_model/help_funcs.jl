@@ -125,8 +125,7 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
             # Calculate average speeds (for second subplot)
             C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
 
-            #total_pop = sol[p[1]] + sol[p[2]]
-            #println(length(total_pop))
+            # Track total populations to ensure population is conserved
             total_pop = zeros(length(sol.t))
             total_pop_patches = zeros(length(sol.t))
 
@@ -135,12 +134,6 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
                 my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 2) # padding because I won't use the first or last colors in this palette
                 display(my_colors1)
 
-                # OLD: update color palette
-                #my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 1)
-                #my_colors2 = palette([my_colors1[2], :snow2], Np * Nc + 1)
-                #plt1 = plot!(plt1, palette=my_colors2)
-                #plt2 = plot!(plt2, palette=my_colors2)
-                # color=my_colors2[i+k-1]
                 total_pop_patches .+= sol[p[j]]
                 total_pop .+= sol[p[j]]
 
@@ -180,13 +173,6 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
             plt3 = plot!(plt3, sol.t, atan.(sol[v], sol[u]), label="theta")
             plt3 = title!(plt3, "Demand function: " * d_version)
 
-            # OLD: Get demand function
-            #results = demand.(sol[u], sol[v])
-            # Unpack into separate vectors
-            #out_d1 = getindex.(results, 1)
-            #out_du = getindex.(results, 2)
-            #out_dv = getindex.(results, 3)
-
             #=
             # Third subplot, emission rates
             C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
@@ -196,117 +182,6 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
 
             # --- Combine into final layout ---
             plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 900))
-
-            # I want to also plot the sum of all the populations, but not sure how to do that with these idx's?
-
-            return model, prob, plt
-
-
-        else
-            return model, prob
-        end
-    else
-        return model, p, c
-    end
-end
-
-function build_symbolic_model_static_demand(; Np=2, Nc=2, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_d, t_end=120, v_f=90)
-    #=
-    Arguments
-        - Np (int): number of patches
-        - Nc (int): maximum number of corridors between any two patches
-    =#
-
-    # Create variables
-    @variables p(t)[1:Np]           # patches
-    @variables c(t)[1:Np, 1:Np, 1:Nc] # corridors
-
-    # Create parameters
-    @parameters α[1:Np]   # tolerance for congestion
-    @parameters β[1:Np, 1:Np, 1:Nc]   # inverse road capacity
-    @parameters d[1:Np]   # desire to leave patch i
-
-    # Define the corridor flux matrices
-    #notice the use of `.` notation before each arithmetic operation, but NOT before `=`
-    EnFlx(p, c, d, α, β) = exp.(-α .* β .* c) .* p .* d
-    ExFlx(c, β) = exp.(-β .* c) .* c
-
-    # Define equations
-    # notice there are only two equations, regardless of the size of Np or Nc
-    eqs = [
-        D.(p) ~ [sum(ExFlx(c, β)[:, i, :]) for i in 1:Np] .- [sum(EnFlx(p, c, d, α[1], β)[i, :, :]) for i in 1:Np],
-        D.(c) ~ collect(-ExFlx(c, β) + EnFlx(p, c, d, α[1], β)),
-    ]
-    #=
-    Notice we only used "collect()" in the equation for D.(c).
-    For D.(p), we summed over the columns of the EnFlx matrix and over the columns of the ExFlx matrix, 
-    then took their difference. If you don't do this (summing), you will get an error because you will be 
-    attempting to save an object of shape (2,2,1) into an object of shape (2,).
-    =#
-
-    # Build model symbolically
-    @mtkbuild model = ODESystem(eqs, t)
-
-    if make_prob
-        prob = ODEProblem(model, [p => pm, c => cm], (0.0, t_end), [α => my_α, β => my_β, d => my_d])
-
-        if make_plot
-            sol = solve(prob, Tsit5())
-
-            my_colors = [:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2] #palette([:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2])
-            my_linestyles = [:dash, :dashdotdot]
-            legend_loc = Nc > 1 ? :right : :topleft
-            plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, ylabel="population", palette=palette(my_colors), legend=legend_loc)
-            plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", palette=palette(my_colors), legend=:right, ylims=(35, 50))
-
-            # First subplot, patch populations
-            for i in 1:Np
-                plt1 = plot!(plt1, sol, idxs=(p[i]), label="p$i", linewidth=3)
-            end
-
-            # Calculate for second subplot, average speeds
-            C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
-
-            # First and second subplots, corridor patches and average speeds
-            for j in 1:Np # to patch j
-                my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 2)
-
-                for i in 1:Np # from patch i
-                    if j != i
-                        for k in 1:Nc # via corridor k
-                            this_β = my_β[i, j, k]
-                            this_color = my_colors1[i+k]
-                            plt1 = plot!(plt1, sol, idxs=(c[i, j, k]), label="c$k, p$i→p$j (C_jam=1/$this_β)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
-                            if j == 2 # TEMP: only plotting speeds for corridors to patch 2
-                                plt2 = plot!(plt2, sol.t, C_speeds[:, i, j, k], label="u: c$k, p$i → p$j", title="average speeds (assume v_f=90 kmh)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
-                            end
-                        end
-                    end
-                end
-            end
-
-            if Nc > 1
-                title!(plt1, "Daily commute: $Np patches, $Nc corridors")
-            else
-                title!(plt1, "Daily commute: $Np patches, $Nc corridor")
-            end
-
-            plt1 = title!(plt1, "Daily commute: $Np patches, $Nc $(Nc > 1 ? "corridors" : "corridor")")
-
-            #=
-            # Third subplot, emission rates
-            C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
-            C1_emissions = calc_emissions_from_speed(sol[c], C_speeds, interp_fn)
-            plt3 = plot(sol.t, C1_emissions, xlabel="t", ylabel="CO2 (G / hour)", label="CO2", title="average emissions rate")
-
-            # --- Combine into final layout ---
-            plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 900))
-
-            =#
-            plt = plot(plt1, plt2, layout=@layout([a; b]), link=:x, size=(800, 600))
-
-            # Display or save the plot
-            # savefig(final_plot, "my_subplots.png")  # if needed
 
             # I want to also plot the sum of all the populations, but not sure how to do that with these idx's?
 
@@ -355,12 +230,6 @@ end
 ## Calculate speeds from densities ##
 #####################################
 
-#v_f = 90             # free-flow velocity, 90 km/hr, same for C1 and C2
-#C1_jam = 1 / β₁      # jam density for C1 (causes avg speed = 0)
-#C2_jam = 1 / β₂      # jam density for C2 (causes avg speed = 0)
-#C1_half = C1_jam / 2 # threshold density for C1 (causes avg speed = 1/2 free-flow speed)
-#C2_half = C2_jam / 2 # threshold density for C2 (causes avg speed = 1/2 free-flow speed)
-
 function calc_space_mean_speed_alternative(v_f, C, my_β; a=1, Np=2, Nc=2)
     #=
         Returns:
@@ -389,29 +258,6 @@ function calc_space_mean_speed_alternative(v_f, C, my_β; a=1, Np=2, Nc=2)
     return max.(u_s, 0.0)
 end
 
-###################################
-# OLD VERSION, KEEPING FOR RECORD #
-###################################
-
-function calc_space_mean_speed_alternative_old(v_f, C, C_half; a=1)
-    #=
-        Returns:
-            - u_s: float 
-                average speed for vehicles in a given traffic flow. If negative, return 0.
-        Arguments:
-            - v_f: float
-                free-flow velocity
-            - C: float
-                vehicle density (in corridor C)
-            - C_half:
-                threshold value of vehicle density, where u_s = 1/2 * v_f
-    =#
-    u_s = -(v_f ./ pi) .* atan.(a .* (C .- C_half)) .+ (v_f ./ 2)
-    return max.(u_s, 0.0)
-    #@. return u_s > 0 ? u_s : 0
-    #return ifelse.(u_s .> 0, u_s, 0.0)
-end
-
 ######################
 # Get emission rates #
 ######################
@@ -422,122 +268,6 @@ function get_emission_rates(x_1) # how to specify that this function should work
     Y = 0.027 + 6.8e-05 * x_1 + 0.00032 * x_2 + 0.00050 * x_3
     return Y
 end
-
-####################################
-# OLD: Playing with diurnal demand #
-####################################
-
-function demand(u, v; u_low=-0.9, u_high=-0.1, v_low=0.1, v_high=0.9)
-    if u > u_low && u < u_high
-        du = 1
-        if v > v_low && v < v_high
-            dv = 1
-            d1 = 1
-        else
-            dv = 0.1
-            d1 = 0.1
-        end
-    else
-        du = 0.1
-        if v > v_low && v < v_high
-            dv = 1
-            d1 = 0.1
-        else
-            dv = 0.1
-            d1 = 0.1
-        end
-    end
-    return d1, du, dv
-end
-
-function build_diurnal_model(; my_u, my_v, my_period, t_end=120)
-
-    # DEFINE VARS AND PARS FOR DIURNAL MODEL
-    @variables u(t)
-    @variables v(t)
-    @variables d(t)
-    @parameters period
-
-    # Define equations (for both population and diurnal model)
-    # notice there are only two equations, regardless of the size of Np or Nc
-    eqs = [
-        D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
-        D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
-        #D(d) ~ d * (1 - u^2 - d^2) - (2 * pi / period) * (d), # Results in interesting shapes which I don't understand
-    ]
-
-    # Build model symbolically and solve it
-    @mtkbuild model = ODESystem(eqs, t)
-    prob = ODEProblem(model, [u => my_u, v => my_v, d => my_v], (0.0, t_end), [period => my_period])
-    sol = solve(prob, Tsit5())
-
-    # Define demand as a function of time
-    # Broadcast the function to get a vector of 3-tuples
-    results = demand.(sol[u], sol[v])
-    # Unpack into separate vectors
-    out_d1 = getindex.(results, 1)
-    out_du = getindex.(results, 2)
-    out_dv = getindex.(results, 3)
-    println(out_d1)
-
-    # Last subplot, diurnal pattern
-    plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, xlabel="t")
-    plt1 = plot!(plt1, sol, idxs=(u), label="u", linewidth=3)
-    plt1 = plot!(plt1, sol, idxs=(v), label="v", linewidth=3)
-    #plt1 = plot!(plt1, sol, idxs=(d), label="d", linewidth=3)
-    plt1 = plot!(plt1, sol.t, out_du, label="du", linewidth=3)
-    plt1 = plot!(plt1, sol.t, out_dv, label="dv", linewidth=3)
-    plt1 = plot!(plt1, sol.t, out_d1, label="d1", linewidth=3, linestyle=:dash)
-
-    # Check sum
-    diurnal_sum = sol[u] .^ 2 + sol[v] .^ 2
-    #plt1 = plot!(plt1, sol.t, sol[u] .* (1 .- diurnal_sum), label="u ( 1 - u^2 - v^2)", linewidth=3)
-    #plt1 = plot!(plt1, sol.t, sol[v] .* (1 .- diurnal_sum), label="v ( 1 - u^2 - v^2)", linewidth=3)
-    #println("\ndiurnal sum:\n", diurnal_sum)
-    #println("\nu*(1 - u^2 - v^2):\n", sol[u] .* (1 .- diurnal_sum))
-    #println("\nv*(1 - u^2 - v^2):\n", sol[v] .* (1 .- diurnal_sum))
-
-    #osc_term_u = -(2 * pi / my_period) .* sol[v]
-    #osc_term_v = (2 * pi / my_period) .* sol[u]
-    #plt1 = plot!(plt1, sol.t, osc_term_u, label="osc_term_u (-2pi/period * v)", linewidth=3, linestyle=:dash)
-    #plt1 = plot!(plt1, sol.t, osc_term_v, label="osc_term_v (2pi/period * u)", linewidth=3, linestyle=:dash)
-    return model, prob, plt1
-
-end
-
-################
-# Old approach #
-################
-
-# Make a U-shaped curve using data from the California paper
-start = 5
-my_step = 5
-stop = 100
-mph_to_kmh = 1.60934
-speed_arr = collect(start:my_step:stop) * mph_to_kmh # convert mph to kmh
-emissions_arr = [1200, 950, 700, 500, 425, 350, 325, 310, 309, 308, 308, 308, 309, 320, 330, 350, 375, 400, 450, 550] * mph_to_kmh
-
-# Interpolate: emissions as a function of speed
-interp_fn = linear_interpolation(speed_arr, emissions_arr, extrapolation_bc=Line())
-
-# Calculate emissions from a given array of speeds
-function calc_emissions_from_speed(vehicle_pop_arr, my_speed_arr, interp_fn)
-    #=
-        Returns:
-            - emissions: array (dim 1) 
-                emission rates (g/km) for whole traffic volume (all vehicles) at each
-                time step
-        Arguments:
-            - vehicle_pop_arr: array (dim 1) of vehicle population densities at 
-              each time step
-            - my_speed_arr: array (dim 1) of avg vehicle speeds at each time step
-            - interp_fn: function (interpolated) relating speeds to emissions
-    =#
-    interpolated_emission_per_vehicle = interp_fn(my_speed_arr)
-    emissions = interpolated_emission_per_vehicle .* my_speed_arr .* vehicle_pop_arr
-    return emissions
-end
-
 
 end  # module
 
@@ -552,8 +282,6 @@ using LinearAlgebra
 using LaTeXStrings
 using Roots
 using ModelingToolkit
-
-
 
 
 ###############################################

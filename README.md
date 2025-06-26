@@ -31,7 +31,7 @@ These state variables are countable populations which could in theory be measure
 ### Parameters
 - $\beta^k[i,j]$: Road congestion factor (inverse road capacity) for corridor $k$. Analogous to ``resistance'' in an electrical wire. Think of congestion as the ratio of vehicles on the road to the jam capacity of that road: $C^k[i,j] / C^k_{jam}[i,j]$. Therefore, $\beta^k[i,j] = 1 / C^k_{jam}[i,j]$, and $\beta^k[i,j]=0$ would imply infinite road capacity. (units: 1/vehicles)
 - $\alpha^i$: aversion to congestion for travelers from patch $i$. Given $\beta_k C^k_{i,j}$, $\uparrow \alpha \Rightarrow \downarrow$ new travelers. (unitless)
-- $O^P[i]$: Percentage of population in patch $i$ who want to travel. (unitless)
+- $d[i]$: Percentage of population in patch $i$ who want to travel. (unitless)
 \end{itemize}
 
 These parameters describe infrastructure capacity (such as the width of a highway) and social behavior of travelers. These quantities are likely to change on a time scale of months to years, whereas our model is focused on traffic flows on a time scale of minutes and hours, so we can treat the above quantities as parameters.
@@ -145,6 +145,52 @@ $$
 $$
 
 This equation says that number of vehicles flowing out of corridor $k$ into patch $j$, with an origin of patch $i$, is proportional to the number of cars on the road $C^k[i,j]$ and inversely related to the congestion on the road $\beta^k[i,j] * C^k[i,j]$. There is no factor controlling sensitivity to congestion, because we assume anyone already traveling in a corridor will exit (reaching their final destination) at the earliest opportunity.
+
+## Diurnal demand function
+Up to now, we have assumed that demand $d[i]$ (for travellers leaving patch $i$) is a static parameter. This is convenient for exploring simples scenarios, such as a ``one-way'' traffic flow from patch 1 (home) to patch 2 (work) during a morning rush hour. However, to build more realistic scenarios, we expect demand to vary with time of day. 
+
+Thus, we re-define $d(t)$ as a variable (rather than a parameter). We want to keep our system of equations autonomous, so our function for $d(t)$ should not explicitly include $t$. Instead, we will build an internal ``clock'' with state variables $u$ (cosine) and $v$ (sine) and define $d(t)$ in terms of $u$ and $v$.
+
+The equations describing the dynamical clock are as follows:
+$$
+\begin{align}
+    \frac{du}{dt} &= u (1 - u^2 - v^2) - (2 pi / \textrm{period}) v \\
+    \frac{dv}{dt} &= v (1 - u^2 - v^2) + (2 pi / \textrm{period}) u
+\end{align}
+$$
+
+Where do these equations come from? They come from the Hopf oscillator (a well-known example of a system that behaves like a limit cycle). In polar coordinates, the Hopf oscillator is described by this system:
+$$
+\begin{align}
+    \frac{dr}{dt} &= r (1-r^2) \\
+    \frac{d\theta}{dt} &= w
+\end{align}
+$$
+where $r=r(t)$ is the radius, $\theta=\theta(t)$ is the angle, and $w$ is the angular velocity (aka $2\pi$ over the period of the oscillator).
+
+To transform this system from polar to Cartesian coordinates, let $u=r\cos{\theta}$ and $v=r\sin{\theta}$. Note that $u^2 + v^2 = r^2$. Then, simply take the derivatives for $u$ and $v$ with respect to $t$ (using product rule and trigonemtric rules) and simplify, like so:
+$$
+\begin{align}
+    \frac{du}{dt} &= r(t)(-\sin{\theta})\frac{d\theta}{dt} + \frac{dr}{dt}\cos{\theta}\\
+    &= -vw + r\cos{\theta}(1 - r^2) \\
+    &= u(1 - r^2) -vw \\
+    &= u(1 - u^2 - v^2) - v(2\pi/\textrm{period}) \\
+    \frac{dv}{dt} &= r(t)(\cos{\theta})\frac{d\theta}{dt} + \frac{dr}{dt}\sin{\theta}\\
+    &= uw + r\sin{\theta}(1 - r^2) \\
+    &= v(1 - r^2) + uw \\
+    &= v(1 - u^2 - v^2) + u(2\pi/\textrm{period})
+\end{align}
+$$
+
+By building our dynamical system with the equations for $u$ and $v$ alongside those for $P$ and $C$, they will all evolve simultaneously. We adjust `period` so that one cycle of the system matches a 24 hour period. Then, we can build our demand function in a number of ways. For example, suppose I want $d[1]$ to follow a periodic function which peaks at 9am, and $d[2]$ to follow a periodic function which peaks at 3pm. I also want to ensure that the demand is never negative. I can accomplish this by writing:
+```
+theta = atan(v, u)
+d_eqs = [
+            d[1] ~ max(0, cos(theta - (3pi / 4))),
+            d[2] ~ max(0, cos(theta - (5pi / 4)))
+        ]
+```
+Why does this work? Since $v=r\sin{\theta}$ and $u=r\cos{\theta}$, $\frac{v}{u} = \tan{\theta}$, and therefore $\arctan{\frac{v}{u}} = \theta$. Imagine a unit circle representing a 24 hour period. Then $\theta = 3\pi/4$ represents 9am and $\theta = 5\pi/4$ represents 3pm. The `max()` function ensures that the value of the demand function will never be negative.
 
 ### Predicting emissions from traffic density
 Given a traffic density $C^k[i,j]$ on a given corridor which has jam density $C^k_{jam}[i,j] = 1 / \beta^k[i,j]$, we can compute average speeds from an alternative version of **Greenshield's model** and then predict emissions / vehicle using the \textbf{U-shaped curve}. 
@@ -286,7 +332,7 @@ And finally, emission rates are calculated:
 ```
 
 ## Analysis
-For the demo case, we find traffic flows and resulting emissions for 100 times steps with parameters $O^p[1]=1, O^p[2]=0$, $\alpha_1 = \alpha_2 = 1$, and $\beta^1[1,2] = 10$, $\beta^2[1,2] = 60$. That is, everyone wants to leave patch 1, no one wants to leave patch 2, all travelers have equal tolerance for congestion, and corridor 1 has much higher capacity than corridor 2. We start with all vehicles in patch 1 and no travelers in any of the other patches or corridors. The traffic flows for this case are shown in \autoref{fig:traffic_flows_1}. We see more travelers choosing corridor 1 over corridor 2, and the rush hour (period of high traffic) in corridor 1 is about 45 time steps, compared to corridor 2's rush hour of more than 100 time steps.
+For the demo case, we find traffic flows and resulting emissions for 100 times steps with parameters $d[1]=1, d[2]=0$, $\alpha_1 = \alpha_2 = 1$, and $\beta^1[1,2] = 10$, $\beta^2[1,2] = 60$. That is, everyone wants to leave patch 1, no one wants to leave patch 2, all travelers have equal tolerance for congestion, and corridor 1 has much higher capacity than corridor 2. We start with all vehicles in patch 1 and no travelers in any of the other patches or corridors. The traffic flows for this case are shown in \autoref{fig:traffic_flows_1}. We see more travelers choosing corridor 1 over corridor 2, and the rush hour (period of high traffic) in corridor 1 is about 45 time steps, compared to corridor 2's rush hour of more than 100 time steps.
 
 ![alt text](https://github.com/acossairt/traffic_air_quality_modeling/blob/main/julia_model/traffic_flows_1.png?raw=true)
 
@@ -302,7 +348,7 @@ At the moment, I am not satisfied with this model for several reasons:
 - Additionally, the current analysis pipeline of vehicle population $\rightarrow$ average speeds $\rightarrow$ emissions implies a linear relationship between population density and emission rates at each time. This seems overly simplistic, and it doesn't suggest any interesting properties about how travel infrastructure relates to emissions.
 
 Future versions of the model should also consider more sophisticated social-ecological interactions. For instance:
-- Increasing road capacity (e.g. by widening highways) can induce additional demand (higher $O^P$). Our model currently does not consider non-static demand.
+- Increasing road capacity (e.g. by widening highways) can induce additional demand (higher $d$). Our model currently does not consider non-static demand.
 - Corridors that represent highways, smaller streets, and railways should likely be governed by different dynamical equations (e.g. trains depart in discrete increments, there is no continuous flow in and out).
 - We should model heterogeneous traffic flows, such as highways used by cars, trucks, motorcycles, auto-rickshaws, cyclists, and pedestrians who may be using the same corridor simultaneously.
 
