@@ -11,84 +11,6 @@ using ModelingToolkit: t_nounits as t, D_nounits as D
 using Interpolations
 using IfElse
 
-function demand(u, v; u_low=-0.9, u_high=-0.1, v_low=0.1, v_high=0.9)
-    if u > u_low && u < u_high
-        du = 1
-        if v > v_low && v < v_high
-            dv = 1
-            d1 = 1
-        else
-            dv = 0.1
-            d1 = 0.1
-        end
-    else
-        du = 0.1
-        if v > v_low && v < v_high
-            dv = 1
-            d1 = 0.1
-        else
-            dv = 0.1
-            d1 = 0.1
-        end
-    end
-    return d1, du, dv
-end
-
-function build_diurnal_model(; my_u, my_v, my_period, t_end=120)
-
-    # DEFINE VARS AND PARS FOR DIURNAL MODEL
-    @variables u(t)
-    @variables v(t)
-    @variables d(t)
-    @parameters period
-
-    # Define equations (for both population and diurnal model)
-    # notice there are only two equations, regardless of the size of Np or Nc
-    eqs = [
-        D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
-        D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
-        #D(d) ~ d * (1 - u^2 - d^2) - (2 * pi / period) * (d), # Results in interesting shapes which I don't understand
-    ]
-
-    # Build model symbolically and solve it
-    @mtkbuild model = ODESystem(eqs, t)
-    prob = ODEProblem(model, [u => my_u, v => my_v, d => my_v], (0.0, t_end), [period => my_period])
-    sol = solve(prob, Tsit5())
-
-    # Define demand as a function of time
-    # Broadcast the function to get a vector of 3-tuples
-    results = demand.(sol[u], sol[v])
-    # Unpack into separate vectors
-    out_d1 = getindex.(results, 1)
-    out_du = getindex.(results, 2)
-    out_dv = getindex.(results, 3)
-    println(out_d1)
-
-    # Last subplot, diurnal pattern
-    plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, xlabel="t")
-    plt1 = plot!(plt1, sol, idxs=(u), label="u", linewidth=3)
-    plt1 = plot!(plt1, sol, idxs=(v), label="v", linewidth=3)
-    #plt1 = plot!(plt1, sol, idxs=(d), label="d", linewidth=3)
-    plt1 = plot!(plt1, sol.t, out_du, label="du", linewidth=3)
-    plt1 = plot!(plt1, sol.t, out_dv, label="dv", linewidth=3)
-    plt1 = plot!(plt1, sol.t, out_d1, label="d1", linewidth=3, linestyle=:dash)
-
-    # Check sum
-    diurnal_sum = sol[u] .^ 2 + sol[v] .^ 2
-    #plt1 = plot!(plt1, sol.t, sol[u] .* (1 .- diurnal_sum), label="u ( 1 - u^2 - v^2)", linewidth=3)
-    #plt1 = plot!(plt1, sol.t, sol[v] .* (1 .- diurnal_sum), label="v ( 1 - u^2 - v^2)", linewidth=3)
-    #println("\ndiurnal sum:\n", diurnal_sum)
-    #println("\nu*(1 - u^2 - v^2):\n", sol[u] .* (1 .- diurnal_sum))
-    #println("\nv*(1 - u^2 - v^2):\n", sol[v] .* (1 .- diurnal_sum))
-
-    #osc_term_u = -(2 * pi / my_period) .* sol[v]
-    #osc_term_v = (2 * pi / my_period) .* sol[u]
-    #plt1 = plot!(plt1, sol.t, osc_term_u, label="osc_term_u (-2pi/period * v)", linewidth=3, linestyle=:dash)
-    #plt1 = plot!(plt1, sol.t, osc_term_v, label="osc_term_v (2pi/period * u)", linewidth=3, linestyle=:dash)
-    return model, prob, plt1
-
-end
-
 function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90)
     #=
     Arguments
@@ -124,18 +46,28 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
 
     # Define demand function (to create "d" for Flux functions)
     theta = atan(v, u)
-    if d_version == "periodic"
+    if d_version == "periodic_0"
         d_eqs = [
             d[1] ~ max(0, cos(theta - (3pi / 4))),
             d[2] ~ max(0, cos(theta - (5pi / 4))) # seems basically the same as -v?
+        ]
+    elseif d_version == "periodic_small"
+        d_eqs = [
+            d[1] ~ max(0.00001, cos(theta - (3pi / 4))),
+            d[2] ~ max(0.00001, cos(theta - (5pi / 4))) # seems basically the same as -v?
         ]
     elseif d_version == "step"
         d_eqs = [
             d[1] ~ IfElse.ifelse(theta ≥ pi / 2, IfElse.ifelse(theta ≤ pi, 1.0, 0.0), 0.0),
             d[2] ~ IfElse.ifelse(theta ≥ -pi, IfElse.ifelse(theta ≤ -pi / 2, 1.0, 0.0), 0.0)
         ]
+    elseif d_version == "static"
+        d_eqs = [
+            d[1] ~ 1,
+            d[2] ~ 0,
+        ]
     else
-        println("Please specify a valid version code for the demand function (options: \"periodic\", \"step\")")
+        println("Please specify a valid version code for the demand function. Defaulting to \"static\"")
         d_eqs = [
             d[1] ~ 1,
             d[2] ~ 0,
@@ -178,11 +110,10 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
             my_colors = [:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2]
             my_linestyles = [:dash, :dashdotdot]
             legend_loc = Nc > 1 ? :right : :topleft
-            display(palette(my_colors))
 
             # Set up subplots
             plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, ylabel="population", legend=legend_loc) # palette=palette(my_colors)
-            plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", legend=:right, ylims=(35, 50)) # palette=palette(my_colors)
+            plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", legend=:right) #, ylims=(35, 50)) # palette=palette(my_colors)
             plt3 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", legend=:right)
 
             # Plot patch populations (first subplot)
@@ -194,17 +125,24 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
             # Calculate average speeds (for second subplot)
             C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
 
+            #total_pop = sol[p[1]] + sol[p[2]]
+            #println(length(total_pop))
+            total_pop = zeros(length(sol.t))
+            total_pop_patches = zeros(length(sol.t))
+
             # Plot corridor populations (first subplot) and average speeds (second subplot)
             for j in 1:Np # to patch j
                 my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 2) # padding because I won't use the first or last colors in this palette
                 display(my_colors1)
 
-                # Old palette approach
+                # OLD: update color palette
                 #my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 1)
                 #my_colors2 = palette([my_colors1[2], :snow2], Np * Nc + 1)
                 #plt1 = plot!(plt1, palette=my_colors2)
                 #plt2 = plot!(plt2, palette=my_colors2)
                 # color=my_colors2[i+k-1]
+                total_pop_patches .+= sol[p[j]]
+                total_pop .+= sol[p[j]]
 
                 for i in 1:Np # from patch i
                     if j != i
@@ -213,10 +151,20 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
                             this_color = my_colors1[i+k] # always skips the first (brightest) shade
                             plt1 = plot!(plt1, sol, idxs=(c[i, j, k]), label="c$k, p$i→p$j (C_jam=1/$this_β)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
                             plt2 = plot!(plt2, sol.t, C_speeds[:, i, j, k], label="u: c$k, p$i → p$j", title="average speeds (assume v_f=90 kmh)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
+                            total_pop .+= sol[c[i, j, k]]
                         end
+                        #else
+                        #    for k in 1:Nc
+                        #        total_pop .+= sol[c[i, j, k]]
+                        #    end
+                        #end
                     end
                 end
             end
+
+            # Plot total populations (should always be 1)
+            plt1 = plot!(plt1, sol.t, total_pop, label="total population", color="black")
+            #plt1 = plot!(plt1, sol.t, total_pop_patches, label="total population (patches only)", color="red")
 
             if Nc > 1
                 title!(plt1, "Daily commute: $Np patches, $Nc corridors")
@@ -232,39 +180,22 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
             plt3 = plot!(plt3, sol.t, atan.(sol[v], sol[u]), label="theta")
             plt3 = title!(plt3, "Demand function: " * d_version)
 
-            # Get demand function
+            # OLD: Get demand function
             #results = demand.(sol[u], sol[v])
             # Unpack into separate vectors
             #out_d1 = getindex.(results, 1)
             #out_du = getindex.(results, 2)
             #out_dv = getindex.(results, 3)
 
-            # Check sum
-            #diurnal_sum = sol[u] .^ 2 + sol[v] .^ 2
-            #plt3 = plot!(plt3, sol.t, diurnal_sum, label="u^2 + v^2", linewidth=3)
-
-            #osc_term_u = -(2 * pi / my_period) .* sol[v]
-            #osc_term_v = (2 * pi / my_period) .* sol[u]
-            #plt3 = plot!(plt3, sol.t, osc_term_u, label="osc_term_u (-2pi/period * v)", linewidth=3, linestyle=:dash)
-            #plt3 = plot!(plt3, sol.t, osc_term_v, label="osc_term_v (2pi/period * u)", linewidth=3, linestyle=:dash)
-
             #=
             # Third subplot, emission rates
             C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
             C1_emissions = calc_emissions_from_speed(sol[c], C_speeds, interp_fn)
             plt3 = plot(sol.t, C1_emissions, xlabel="t", ylabel="CO2 (G / hour)", label="CO2", title="average emissions rate")
-
-            # --- Combine into final layout ---
-            plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 900))
-
-            plt = plot(plt1, plt2, layout=@layout([a; b]), link=:x, size=(800, 600))
             =#
 
             # --- Combine into final layout ---
             plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 900))
-
-            # Display or save the plot
-            # savefig(final_plot, "my_subplots.png")  # if needed
 
             # I want to also plot the sum of all the populations, but not sure how to do that with these idx's?
 
@@ -279,7 +210,7 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
     end
 end
 
-function build_symbolic_model(; Np=2, Nc=2, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_d, t_end=120, v_f=90)
+function build_symbolic_model_static_demand(; Np=2, Nc=2, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_d, t_end=120, v_f=90)
     #=
     Arguments
         - Np (int): number of patches
@@ -338,19 +269,16 @@ function build_symbolic_model(; Np=2, Nc=2, make_prob=true, make_plot=true, pm, 
 
             # First and second subplots, corridor patches and average speeds
             for j in 1:Np # to patch j
-                my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 1)
-                display(my_colors1)
-                my_colors2 = palette([my_colors1[2], :snow2], Np * Nc + 1)
-                display(my_colors2)
-                plt1 = plot!(plt1, palette=my_colors2)
-                plt2 = plot!(plt2, palette=my_colors2)
+                my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 2)
+
                 for i in 1:Np # from patch i
                     if j != i
                         for k in 1:Nc # via corridor k
                             this_β = my_β[i, j, k]
-                            plt1 = plot!(plt1, sol, idxs=(c[i, j, k]), label="c$k, p$i→p$j (C_jam=1/$this_β)", linewidth=3, linestyle=my_linestyles[k], color=my_colors2[i+k-1]) # label="c[$i,$j,$k], k_jam=1/$this_β"
+                            this_color = my_colors1[i+k]
+                            plt1 = plot!(plt1, sol, idxs=(c[i, j, k]), label="c$k, p$i→p$j (C_jam=1/$this_β)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
                             if j == 2 # TEMP: only plotting speeds for corridors to patch 2
-                                plt2 = plot!(plt2, sol.t, C_speeds[:, i, j, k], label="u: c$k, p$i → p$j", title="average speeds (assume v_f=90 kmh)", linewidth=3, linestyle=my_linestyles[k], color=my_colors2[i+k-1])
+                                plt2 = plot!(plt2, sol.t, C_speeds[:, i, j, k], label="u: c$k, p$i → p$j", title="average speeds (assume v_f=90 kmh)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
                             end
                         end
                     end
@@ -493,6 +421,88 @@ function get_emission_rates(x_1) # how to specify that this function should work
     x_3 = ifelse.(i * f * x_1 .> 80, x_1 - 80 * i * f * x_1, 0.0)
     Y = 0.027 + 6.8e-05 * x_1 + 0.00032 * x_2 + 0.00050 * x_3
     return Y
+end
+
+####################################
+# OLD: Playing with diurnal demand #
+####################################
+
+function demand(u, v; u_low=-0.9, u_high=-0.1, v_low=0.1, v_high=0.9)
+    if u > u_low && u < u_high
+        du = 1
+        if v > v_low && v < v_high
+            dv = 1
+            d1 = 1
+        else
+            dv = 0.1
+            d1 = 0.1
+        end
+    else
+        du = 0.1
+        if v > v_low && v < v_high
+            dv = 1
+            d1 = 0.1
+        else
+            dv = 0.1
+            d1 = 0.1
+        end
+    end
+    return d1, du, dv
+end
+
+function build_diurnal_model(; my_u, my_v, my_period, t_end=120)
+
+    # DEFINE VARS AND PARS FOR DIURNAL MODEL
+    @variables u(t)
+    @variables v(t)
+    @variables d(t)
+    @parameters period
+
+    # Define equations (for both population and diurnal model)
+    # notice there are only two equations, regardless of the size of Np or Nc
+    eqs = [
+        D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
+        D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
+        #D(d) ~ d * (1 - u^2 - d^2) - (2 * pi / period) * (d), # Results in interesting shapes which I don't understand
+    ]
+
+    # Build model symbolically and solve it
+    @mtkbuild model = ODESystem(eqs, t)
+    prob = ODEProblem(model, [u => my_u, v => my_v, d => my_v], (0.0, t_end), [period => my_period])
+    sol = solve(prob, Tsit5())
+
+    # Define demand as a function of time
+    # Broadcast the function to get a vector of 3-tuples
+    results = demand.(sol[u], sol[v])
+    # Unpack into separate vectors
+    out_d1 = getindex.(results, 1)
+    out_du = getindex.(results, 2)
+    out_dv = getindex.(results, 3)
+    println(out_d1)
+
+    # Last subplot, diurnal pattern
+    plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, xlabel="t")
+    plt1 = plot!(plt1, sol, idxs=(u), label="u", linewidth=3)
+    plt1 = plot!(plt1, sol, idxs=(v), label="v", linewidth=3)
+    #plt1 = plot!(plt1, sol, idxs=(d), label="d", linewidth=3)
+    plt1 = plot!(plt1, sol.t, out_du, label="du", linewidth=3)
+    plt1 = plot!(plt1, sol.t, out_dv, label="dv", linewidth=3)
+    plt1 = plot!(plt1, sol.t, out_d1, label="d1", linewidth=3, linestyle=:dash)
+
+    # Check sum
+    diurnal_sum = sol[u] .^ 2 + sol[v] .^ 2
+    #plt1 = plot!(plt1, sol.t, sol[u] .* (1 .- diurnal_sum), label="u ( 1 - u^2 - v^2)", linewidth=3)
+    #plt1 = plot!(plt1, sol.t, sol[v] .* (1 .- diurnal_sum), label="v ( 1 - u^2 - v^2)", linewidth=3)
+    #println("\ndiurnal sum:\n", diurnal_sum)
+    #println("\nu*(1 - u^2 - v^2):\n", sol[u] .* (1 .- diurnal_sum))
+    #println("\nv*(1 - u^2 - v^2):\n", sol[v] .* (1 .- diurnal_sum))
+
+    #osc_term_u = -(2 * pi / my_period) .* sol[v]
+    #osc_term_v = (2 * pi / my_period) .* sol[u]
+    #plt1 = plot!(plt1, sol.t, osc_term_u, label="osc_term_u (-2pi/period * v)", linewidth=3, linestyle=:dash)
+    #plt1 = plot!(plt1, sol.t, osc_term_v, label="osc_term_v (2pi/period * u)", linewidth=3, linestyle=:dash)
+    return model, prob, plt1
+
 end
 
 ################
