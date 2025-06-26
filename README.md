@@ -130,11 +130,11 @@ The equations for fluxes into and out of corridors are as follows.
 
 $$
 \begin{align}
-    F^{\rightarrow k}[i,j] &= \exp{(-\alpha[i] * \beta^k[i,j] * C^k[i,j])} * O^{P}[i] * P[i]
+    F^{\rightarrow k}[i,j] &= \exp{(-\alpha[i] * \beta^k[i,j] * C^k[i,j])} * d[i] * P[i]
 \end{align}
 $$
 
-This equation states that the number of vehicles which flow from patch $i$ into corridor $k$ with a final destination of patch $j$ depends positively on the current number of vehicles in patch $i$ who want to leave ($O^{P}[i] * P[i]$), and inversely on the current congestion level ($\beta^k[i,j] C^k[i,j]$), with the strength of aversion to congestion controlled by the factor $\alpha[i]$.
+This equation states that the number of vehicles which flow from patch $i$ into corridor $k$ with a final destination of patch $j$ depends positively on the current number of vehicles in patch $i$ who want to leave ($d[i] * P[i]$), and inversely on the current congestion level ($\beta^k[i,j] C^k[i,j]$), with the strength of aversion to congestion controlled by the factor $\alpha[i]$.
 
 ### Fluxes from corridors to patches
 
@@ -191,6 +191,17 @@ d_eqs = [
         ]
 ```
 Why does this work? Since $v=r\sin{\theta}$ and $u=r\cos{\theta}$, $\frac{v}{u} = \tan{\theta}$, and therefore $\arctan{\frac{v}{u}} = \theta$. Imagine a unit circle representing a 24 hour period. Then $\theta = 3\pi/4$ represents 9am and $\theta = 5\pi/4$ represents 3pm. The `max()` function ensures that the value of the demand function will never be negative.
+
+In the context of the package `ModelingToolkit.jl`, the variable $d(t)$ is an "observed" variable. That means, it will be computed at each time step by our dynamical solver, but we don't have to "solve" for $d$ the way we do our other variables because we did not define $d(t)$ in terms of its derivative $\frac{dd}{dt}$. However, we still have to include the equations for $d$ in our set of equations that we pass to the dynamical solver so that $d$ will be updated at each time-step. In code, this looks like:
+```
+eqs = [
+        D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
+        D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
+        D.(p) ~ [sum(ExFlx(c, β)[:, i, :]) for i in 1:Np] .- [sum(EnFlx(p, c, d, α[1], β)[i, :, :]) for i in 1:Np],
+        D.(c) ~ collect(-ExFlx(c, β) + EnFlx(p, c, d, α[1], β)),
+        d_eqs...   # <-- include the triple dots to splice the equations into the list
+    ]
+```
 
 ### Predicting emissions from traffic density
 Given a traffic density $C^k[i,j]$ on a given corridor which has jam density $C^k_{jam}[i,j] = 1 / \beta^k[i,j]$, we can compute average speeds from an alternative version of **Greenshield's model** and then predict emissions / vehicle using the \textbf{U-shaped curve}. 
@@ -264,10 +275,10 @@ Fluxes from patches to corridors depend on 1) population of patch $i$ interested
 
 $$
 \begin{align*}
-    F_{p1}^{c1} &= \exp{(-\alpha_1 * \beta_1 * C^1_{12})} * O^{P1} * P^1 \\
-    F_{p1}^{c2} &= \exp{(-\alpha_1 * \beta_2 * C^2_{12})} * O^{P1} * P^1 \\
-    F_{p2}^{c1} &= \exp{(-\alpha_2 * \beta_2 * C^1_{21})} * O^{P2} * P^2 \\
-    F_{p2}^{c2} &= \exp{(-\alpha_2 * \beta_2 * C^2_{21})} * O^{P2} * P^2 \\
+    F_{p1}^{c1} &= \exp{(-\alpha_1 * \beta_1 * C^1_{12})} * d[1] * P^1 \\
+    F_{p1}^{c2} &= \exp{(-\alpha_1 * \beta_2 * C^2_{12})} * d[1] * P^1 \\
+    F_{p2}^{c1} &= \exp{(-\alpha_2 * \beta_2 * C^1_{21})} * d[2] * P^2 \\
+    F_{p2}^{c2} &= \exp{(-\alpha_2 * \beta_2 * C^2_{21})} * d[2] * P^2 \\
 \end{align*}
 $$
 
