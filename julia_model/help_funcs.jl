@@ -11,7 +11,7 @@ using ModelingToolkit: t_nounits as t, D_nounits as D
 using Interpolations
 using IfElse
 
-function build_symbolic_model_diurnal(; Np=2, Nc=1, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90, my_L=0.6, my_k=10, my_x0=0.8, my_shift=0)
+function build_symbolic_model_diurnal(; Np=2, Nc=1, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90, my_L=0.6, my_k=10, my_x0=0.8, my_shift=0, x_pos=0.8, y_pos=0.8)
     #=
     Arguments
         - Np (int): number of patches
@@ -191,6 +191,31 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, make_prob=true, make_plot=tr
             end
 
             plt1 = title!(plt1, "Daily commute: $Np patches, $Nc $(Nc > 1 ? "corridors" : "corridor")")
+
+            # Annotate demand function
+            if d_version == "periodic_logistic"
+                my_shift_normalized = my_shift / 60
+                # Create parameter text
+                param_text = """
+                Demand function:
+                f = L / (1 + exp^(-k*(x-x0)))
+                Parameters:
+                L: $my_L | k: $my_k | x0: $my_x0
+                x shifted by: $my_shift_normalized hours
+                """
+
+                # Use relative positioning (0-1 scale)
+                xlims = Plots.xlims(plt3)
+                ylims = Plots.ylims(plt3)
+                x_actual = xlims[1] + (xlims[2] - xlims[1]) * x_pos
+                y_actual = ylims[1] + (ylims[2] - ylims[1]) * y_pos
+
+                plt3 = annotate!(plt3, (x_actual, y_actual,
+                    text(param_text,
+                        :left, 8,
+                        :black,
+                        RGBA(0, 0, 0, 1))))  # Semi-transparent white background
+            end
 
             #=
             # Final subplot, emission rates
