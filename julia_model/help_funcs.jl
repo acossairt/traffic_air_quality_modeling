@@ -11,30 +11,45 @@ using ModelingToolkit: t_nounits as t, D_nounits as D
 using Interpolations
 using IfElse
 
-function build_symbolic_model_diurnal(; Np=2, Nc=1, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90, my_L=0.6, my_k=10, my_x0=0.8, my_shift=0, x_pos=0.8, y_pos=0.8)
+function build_symbolic_model_diurnal(; make_prob=true, make_plot=true, Np=2, Nc=1, pm, cm, my_u=1, my_v=0, my_α, my_β, my_period, d_version="default", t_end=120, v_f=90, my_L=0.6, my_k=10, my_x0=0.8, my_shift=0, x_pos=0.8, y_pos=0.8)
     #=
+    Np=2, Nc=1, make_prob=true, make_plot=true, pm, cm, my_α, my_β, 
+    my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90, 
+    my_L=0.6, my_k=10, my_x0=0.8, my_shift=0, x_pos=0.8, y_pos=0.8
     Arguments
         - Np (int): number of patches
         - Nc (int): maximum number of corridors between any two patches
         - pm (array of floats): initial conditions for variable p
         - cm (array of floats): initial conditions for variable c
+        - my_u (int): initial conditions for variable u (the cos var of the dynamical clock)
+        - my_v (int): initial conditions for variable v (the sin var of the dynamical clock)
         - my_α (array of floats): values for parameter α
         - my_β (array of floats): values for parameter β
             - Note: make sure the values along the diagonal of this matrix are 1e9,
                     or else you will have vehicles leaking into non-existent "self-loops."
                     Can't use `Inf` because initial conditions may include 0, and
                     Inf * 0 = NaN, and NaN objects will break the solver.
-        - my_u (int): initial conditions for variable u (the cos var of the dynamical clock)
-        - my_v (int): initial conditions for variable v (the sin var of the dynamical clock)
         - my_period (int): value for parameter period (for the dynamical clock)
         - d_version (string): specifies version of demand function to use
-            - "default": d1 = 1 always, d2 = 0 always
-            - "periodic": d1 peaks at theta = 3pi/4, d2 peaks at theta = 5pi/4
+            - "periodic_logistic": uses v as the input x to the logistic equation
+                    f(x) = L / (1 + exp(-k*(x-x0))).
+                    This creates a well behaved periodic function which can be parameterized
+                    to look like a square wave. Using function v_shifted, the input
+                    can also be right or left shifted to specify peak demand hour
+            - "static" or "default": d1 = 1 always, d2 = 0 always
+            - "periodic_0": d1 peaks at theta = 3pi/4, d2 peaks at theta = 5pi/4
             - "step": d1 = 1 for pi/2 \leq theta \leq pi, 0 everywhere else
                       d2 = 1 for -pi \leq theta \leq -pi/2, 0 everywhere else
         - t_end (int): end time for dynamical solver (not equivalent to number of time-steps)
             - Question: how does the solver determine how many steps to take?
         - v_f (float): free-flow-velocity (argument to be passed to calc_space_mean_speed_alternative)
+        - my_L: value for parameter L in the logistic demand function
+        - my_k: value for parameter k in the logistic demand function
+        - my_x0: value for parameter L in the logistic demand function
+        - my_shift: value for parameter `shift` in function v_shifted(). Specifies
+            how much to shift v left or right shift before passing to f().
+        - x_pos: relative positioning along x axis for annotation of demand function plot
+        - y_pos: relative positioning along y axis for annotation of demand function plot
     =#
 
     # Create variables for population model and internal "clock" model
