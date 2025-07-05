@@ -11,24 +11,29 @@ using ModelingToolkit: t_nounits as t, D_nounits as D
 using Interpolations
 using IfElse
 
-function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90)
+function build_symbolic_model_diurnal(; Np=2, Nc=1, make_prob=true, make_plot=true, pm, cm, my_α, my_β, my_u=1, my_v=0, my_period, d_version="default", t_end=120, v_f=90, my_L=0.6, my_k=10, my_x0=0.8, my_shift=0)
     #=
     Arguments
         - Np (int): number of patches
-        - Nc (int): maximum number of corridors between any```````` two patches
+        - Nc (int): maximum number of corridors between any two patches
         - pm (array of floats): initial conditions for variable p
         - cm (array of floats): initial conditions for variable c
         - my_α (array of floats): values for parameter α
         - my_β (array of floats): values for parameter β
-        - my_u (int): initial conditions for variable u (the cos var)
-        - my_v (int): initial conditions for variable v (the sin var)
-        - my_period (int): value for parameter period
+            - Note: make sure the values along the diagonal of this matrix are 1e9,
+                    or else you will have vehicles leaking into non-existent "self-loops."
+                    Can't use `Inf` because initial conditions may include 0, and
+                    Inf * 0 = NaN, and NaN objects will break the solver.
+        - my_u (int): initial conditions for variable u (the cos var of the dynamical clock)
+        - my_v (int): initial conditions for variable v (the sin var of the dynamical clock)
+        - my_period (int): value for parameter period (for the dynamical clock)
         - d_version (string): specifies version of demand function to use
             - "default": d1 = 1 always, d2 = 0 always
             - "periodic": d1 peaks at theta = 3pi/4, d2 peaks at theta = 5pi/4
             - "step": d1 = 1 for pi/2 \leq theta \leq pi, 0 everywhere else
                       d2 = 1 for -pi \leq theta \leq -pi/2, 0 everywhere else
-        - t_end (int): number of time steps for dynamical solver to take
+        - t_end (int): end time for dynamical solver (not equivalent to number of time-steps)
+            - Question: how does the solver determine how many steps to take?
         - v_f (float): free-flow-velocity (argument to be passed to calc_space_mean_speed_alternative)
     =#
 
@@ -36,25 +41,42 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
     @variables p(t)[1:Np]             # patches
     @variables c(t)[1:Np, 1:Np, 1:Nc] # corridors
     @variables d(t)[1:Np]             # demand to leave each patch
-    @variables u(t)                   # cosine function (for internal clock)
-    @variables v(t)                   # sine function (for internal clock)
+    @variables u(t)                   # cosine function (for dynamical clock)
+    @variables v(t)                   # sine function (for dynamical clock)
 
     # Create parameters
     @parameters α[1:Np]               # tolerance for congestion
     @parameters β[1:Np, 1:Np, 1:Nc]   # inverse road capacity
-    @parameters period                # period for internal clock
+    @parameters period                # period for dynamical clock
 
     # Define demand function (to create "d" for Flux functions)
     theta = atan(v, u)
-    if d_version == "periodic_0"
+    f(x, k, x_0, L) = L / (1 + exp(-k * (x - x_0)))
+    #v_shifted(shift) = v * cos(2 * π * shift / period) - sqrt(1 - v^2) * sin(2 * π * shift / period)
+    # Sine difference formula: sin(a-b) = sin(a)cos(b) - cos(a)sin(b)
+    v_shifted(shift) = v * cos(2 * π * shift / period) - u * sin(2 * π * shift / period)
+    if d_version == "periodic_logistic"
         d_eqs = [
-            d[1] ~ max(0, cos(theta - (3pi / 4))),
-            d[2] ~ max(0, cos(theta - (5pi / 4))) # seems basically the same as -v?
+            d[1] ~ f(v_shifted(my_shift), my_k, my_x0, my_L),
+            d[2] ~ f(-v_shifted(my_shift), my_k, my_x0, my_L)
+        ]
+    elseif d_version == "periodic_0"
+        d_eqs = [
+            d[1] ~ max(0, cos(theta - (2pi / 4))),
+            d[2] ~ max(0, cos(theta - (6pi / 4))) # seems basically the same as -v?
+            #d[1] ~ max(0, cos(theta - (3pi / 4))),
+            #d[2] ~ max(0, cos(theta - (5pi / 4))) # seems basically the same as -v?
         ]
     elseif d_version == "periodic_small"
         d_eqs = [
             d[1] ~ max(0.00001, cos(theta - (3pi / 4))),
             d[2] ~ max(0.00001, cos(theta - (5pi / 4))) # seems basically the same as -v?
+        ]
+    elseif d_version == "periodic_triple"
+        d_eqs = [
+            d[1] ~ max(0.0, cos(theta - (5pi / 8))),
+            d[2] ~ max(0.0, cos(theta - (5pi / 8))),
+            d[3] ~ max(0.0, cos(theta - (11pi / 8))) # seems basically the same as -v?
         ]
     elseif d_version == "step"
         d_eqs = [
@@ -104,22 +126,31 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
         # Also, d does not require initial conditions because it is a function of u and v, which do have initial conditions assigned
 
         if make_plot
-            sol = solve(prob, Tsit5())
+            sol = solve(prob, Tsit5())#, dt=0.001, adaptive=false)
 
             # Define accessories
             my_colors = [:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2]
-            my_linestyles = [:dash, :dashdotdot]
-            legend_loc = Nc > 1 ? :right : :topleft
+            my_linestyles = [:dash, :dashdotdot, :dot]
+            legend_loc = Nc > 1 || Np > 2 ? :right : :topleft
 
             # Set up subplots
-            plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, ylabel="population", legend=legend_loc) # palette=palette(my_colors)
-            plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", legend=:right) #, ylims=(35, 50)) # palette=palette(my_colors)
-            plt3 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", legend=:right)
+            plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, ylabel="population", legend=legend_loc, legend_background_color=RGBA(1, 1, 1, 0.5)) # palette=palette(my_colors)
+            plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", legend=:right, legend_background_color=RGBA(1, 1, 1, 0.5)) #, ylims=(35, 50)) # palette=palette(my_colors)
+            plt3 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", legend=:right, legend_background_color=RGBA(1, 1, 1, 0.5), palette=:lightrainbow)
 
-            # Plot patch populations (first subplot)
+            # Last subplot, diurnal pattern
+            plt3 = plot!(plt3, sol.t ./ 60, sol[u], label="u", linewidth=2)
+            plt3 = plot!(plt3, sol.t ./ 60, sol[v], label="v", linewidth=2)
+            #plt3 = plot!(plt3, sol.t ./ 60, atan.(sol[v], sol[u]), label="theta")
+            plt3 = title!(plt3, "Demand function: " * d_version)
+            # Is u = sqrt(1-v^2)? # No, because strictly positive
+            #plt3 = plot!(plt3, sol.t / 60, sqrt.(1 .- sol[v] .^ 2), label="√1-v^2")
+
+            # Plot patch populations and demand
             for i in 1:Np
-                plt1 = plot!(plt1, sol, idxs=(p[i]), label="p$i", linewidth=3, color=my_colors[i])
-                plt3 = plot!(plt3, sol, idxs=(d[i]), label="d$i", linewidth=3, linestyle=:dash, color=my_colors[i])
+                plt1 = plot!(plt1, sol.t ./ 60, sol[p[i]], label="p$i", linewidth=3, color=my_colors[i])
+                plt3 = plot!(plt3, sol.t ./ 60, sol[d[i]], label="d$i", linewidth=3, linestyle=:dash, color=my_colors[i])
+                #plt3 = plot!(plt3, sol.t ./ 60, f.(sol[v], my_k, my_x0, my_L), label="f(v)") # check if demand function is working
             end
 
             # Calculate average speeds (for second subplot)
@@ -129,10 +160,9 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
             total_pop = zeros(length(sol.t))
             total_pop_patches = zeros(length(sol.t))
 
-            # Plot corridor populations (first subplot) and average speeds (second subplot)
             for j in 1:Np # to patch j
                 my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 2) # padding because I won't use the first or last colors in this palette
-                display(my_colors1)
+                #display(my_colors1)
 
                 total_pop_patches .+= sol[p[j]]
                 total_pop .+= sol[p[j]]
@@ -142,22 +172,17 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
                         for k in 1:Nc # via corridor k
                             this_β = my_β[i, j, k]
                             this_color = my_colors1[i+k] # always skips the first (brightest) shade
-                            plt1 = plot!(plt1, sol, idxs=(c[i, j, k]), label="c$k, p$i→p$j (C_jam=1/$this_β)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
-                            plt2 = plot!(plt2, sol.t, C_speeds[:, i, j, k], label="u: c$k, p$i → p$j", title="average speeds (assume v_f=90 kmh)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
+                            plt1 = plot!(plt1, sol.t ./ 60, sol[c[i, j, k]], label="c$k, p$i→p$j (C_jam=1/$this_β)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
+                            plt1 = hline!(plt1, [1 ./ this_β], linewidth=1, linestyle=my_linestyles[k], color=this_color, label="C_jam=1/$this_β")
+                            plt2 = plot!(plt2, sol.t ./ 60, C_speeds[:, i, j, k], label="u: c$k, p$i → p$j", title="average speeds (assume v_f=90 kmh)", linewidth=3, linestyle=my_linestyles[k], color=this_color)
                             total_pop .+= sol[c[i, j, k]]
                         end
-                        #else
-                        #    for k in 1:Nc
-                        #        total_pop .+= sol[c[i, j, k]]
-                        #    end
-                        #end
                     end
                 end
             end
 
             # Plot total populations (should always be 1)
-            plt1 = plot!(plt1, sol.t, total_pop, label="total population", color="black")
-            #plt1 = plot!(plt1, sol.t, total_pop_patches, label="total population (patches only)", color="red")
+            plt1 = plot!(plt1, sol.t ./ 60, total_pop, label="total population", color="black")
 
             if Nc > 1
                 title!(plt1, "Daily commute: $Np patches, $Nc corridors")
@@ -167,25 +192,16 @@ function build_symbolic_model_diurnal(; Np=2, Nc=2, make_prob=true, make_plot=tr
 
             plt1 = title!(plt1, "Daily commute: $Np patches, $Nc $(Nc > 1 ? "corridors" : "corridor")")
 
-            # Last subplot, diurnal pattern
-            plt3 = plot!(plt3, sol, idxs=(u), label="u", linewidth=3)
-            plt3 = plot!(plt3, sol, idxs=(v), label="v", linewidth=3)
-            plt3 = plot!(plt3, sol.t, atan.(sol[v], sol[u]), label="theta")
-            plt3 = title!(plt3, "Demand function: " * d_version)
-
             #=
-            # Third subplot, emission rates
+            # Final subplot, emission rates
             C_speeds = calc_space_mean_speed_alternative(v_f, sol[c], my_β, a=1, Np=Np, Nc=Nc)
             C1_emissions = calc_emissions_from_speed(sol[c], C_speeds, interp_fn)
             plt3 = plot(sol.t, C1_emissions, xlabel="t", ylabel="CO2 (G / hour)", label="CO2", title="average emissions rate")
             =#
 
             # --- Combine into final layout ---
-            plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 900))
-
-            # I want to also plot the sum of all the populations, but not sure how to do that with these idx's?
-
-            return model, prob, plt
+            plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 1200))
+            return model, prob, sol, plt
 
 
         else
@@ -230,7 +246,7 @@ end
 ## Calculate speeds from densities ##
 #####################################
 
-function calc_space_mean_speed_alternative(v_f, C, my_β; a=1, Np=2, Nc=2)
+function calc_space_mean_speed_alternative(v_f, C, my_β; a=0.5, Np=2, Nc=2)
     #=
         Returns:
             - u_s: float
@@ -244,6 +260,8 @@ function calc_space_mean_speed_alternative(v_f, C, my_β; a=1, Np=2, Nc=2)
                 threshold value of vehicle density, where u_s = 1/2 * v_f
     =#
     C_jam = 1 ./ my_β
+    println("C_jam:")
+    display(C_jam)
     C_half = C_jam ./ 2
     t_steps = length(C)
     u_s = Array{Float64}(undef, t_steps, Np, Np, Nc) # is this the right order? Or should Nc go first?
