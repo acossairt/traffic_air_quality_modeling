@@ -13,7 +13,7 @@ using IfElse
 
 function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
     my_kc_jam, my_period, γ_version="static", t_end=120, my_v_f=90, my_L=0.6, my_r=10,
-    my_x0=0.8, my_shift=0, x_pos=0.65, y_pos=0.8)
+    my_x0=0.8, my_shift=0, x_pos=0.05, y_pos=0.15)
     #=
     Arguments
         - Np (int): number of patches
@@ -230,9 +230,9 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0
         # Create parameter text
         param_text = """
         Demand function:
-        f = L / (1 + exp^(-k*(x-x0)))
+        f = L / (1 + exp^(-r*(x-x0)))
         Parameters:
-        L: $my_L | k: $my_r | x0: $my_x0
+        L: $my_L | r: $my_r | x0: $my_x0
         x shifted by: $my_shift_normalized hours
         """
 
