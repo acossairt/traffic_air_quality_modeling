@@ -23,13 +23,13 @@ The concept for this model is shown in \autoref{fig:conceptual_diagram} for a ca
 In general, suppose there are $N$ patches, up to $K$ corridors connecting each pair, and 1 total vehicles (this is a normalized value; we can think of it as a density). The state variables and parameters are listed below:
 
 ### State Variables
-- $P^i$: population in patch $i$ (units: vehicles)
-- $C^k[i,j]$: population in corridor $k$, heading from patch $i$ to patch $j$ (units: vehicles)
+- $kp[i]$: population density in patch $i$ (units: vehicles)
+- $kc[i,j,k]$: population density in corridor $k$, heading from patch $i$ to patch $j$ (units: vehicles)
   
 These state variables are countable populations which could in theory be measured at a point in time.
 
 ### Parameters
-- $\beta^k[i,j]$: Road congestion factor (inverse road capacity) for corridor $k$. Analogous to ``resistance'' in an electrical wire. Think of congestion as the ratio of vehicles on the road to the jam capacity of that road: $C^k[i,j] / C^k_{jam}[i,j]$. Therefore, $\beta^k[i,j] = 1 / C^k_{jam}[i,j]$, and $\beta^k[i,j]=0$ would imply infinite road capacity. (units: 1/vehicles)
+- $kc_jam[i,j,k]$: Road congestion factor (inverse road capacity) for corridor $k$ heading from patch $i$ to patch $j$. Analogous to ``resistance'' in an electrical wire. Think of congestion as the ratio of vehicles on the road to the jam capacity of that road: $C^k[i,j] / C^k_{jam}[i,j]$. Therefore, $\beta^k[i,j] = 1 / C^k_{jam}[i,j]$, and $\beta^k[i,j]=0$ would imply infinite road capacity. (units: 1/vehicles)
 - $\alpha^i$: aversion to congestion for travelers from patch $i$. Given $\beta_k C^k_{i,j}$, $\uparrow \alpha \Rightarrow \downarrow$ new travelers. (unitless)
 - $d[i]$: Percentage of population in patch $i$ who want to travel. (unitless)
 \end{itemize}
