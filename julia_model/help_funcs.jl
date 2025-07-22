@@ -11,8 +11,21 @@ using ModelingToolkit: t_nounits as t, D_nounits as D
 using Interpolations
 using IfElse
 
+#####################################
+## Calculate speeds from densities ##
+#####################################
+
+function speed_density_curve(; v_f, a, C, kc_jam)
+    C_half = (1 / kc_jam) / 2
+    return (v_f / ((pi / 2 .- atan.(a .* (0 .- C_half))) / pi)) .* (pi / 2 .- atan.(a .* (C .- C_half))) / pi
+end
+
+##################
+# THE MAIN EVENT #
+##################
+
 function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
-    my_kc_jam, my_period, γ_version="static", t_end=120, my_v_f=90, my_L=0.6, my_r=10,
+    my_kc_jam, my_period=1440, γ_version="static", t_end=120, my_v_f=90, my_a=1, my_L=0.6, my_r=10,
     my_x0=0.8, my_shift=0, x_pos=0.05, y_pos=0.15)
     #=
     Arguments
@@ -41,7 +54,10 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0
             - Note: this is not equivalent to number of time steps. That can be
                 specified by passing an argument `dt` in the function `solve()`, 
                 otherwise it is determined adaptively by the solver (of type Tsit5)
-        - my_v_f (float): free-flow-velocity (argument to be passed to calc_space_mean_speed_alternative)
+        - my_v_f (float): free-flow-velocity 
+            (argument to be passed to calc_space_mean_speed_alternative)
+        - my_a (float): tuning parameter for speed-density 
+            (argument to be passed to calc_space_mean_speed_alternative)
         - my_L: value for parameter L in the logistic demand function
         - my_r: value for parameter k in the logistic demand function
         - my_x0: value for parameter L in the logistic demand function
@@ -99,13 +115,18 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0
     end
 
     #=
+    Rescale time in terms of a day that is 1440 minutes
+    =#
+    time_rescale = 1440 / my_period
+
+    #=
     Define the corridor flux matrices:
         Notice the use of `.` notation before each arithmetic operation, but NOT before 
         `=`. This is because `.=` only makes sense if the LHS of the equation is an 
         existing vector (or matrix) which has exactly same shape as the RHS.
     =#
-    EnFlx(kp, kc, γ, α, kc_jam) = exp.(-α .* kc_jam .* kc) .* kp .* γ
-    ExFlx(kc, kc_jam) = exp.(-kc_jam .* kc) .* kc
+    EnFlx(kp, kc, γ, α, kc_jam) = exp.(-α .* kc_jam .* kc) .* kp .* γ .* time_rescale #.* 0 # shutting down flux into corridors
+    ExFlx(kc, kc_jam) = exp.(-kc_jam .* kc) .* kc .* time_rescale #.* 0 #shutting down flux out of corridors
 
     #=
     Define equations for model:
@@ -141,14 +162,12 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0
     # Solve problem
     sol = solve(prob, Tsit5())
 
-    # Calculate average vehicle speeds
-    C_speeds = calc_space_mean_speed_alternative(my_v_f, sol[kc], my_kc_jam, a=1, Np=Np, Nc=Nc)
-
     #=
     Plot results:
         Subplot 1: population (densities) of patches and corridors vs. time (in hours)
         Subplot 2: average vehicle speeds vs. time (in hours)
         Subplot 3: diurnal clock (`u` and `v`) and demand function `γ` vs. time (in hours)
+        Subplot 4: speed-density curve
     =#
 
     # Define accessories for plots
@@ -201,7 +220,10 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0
                         linestyle=my_linestyles[k], color=this_color)
 
                     # Plot average vehicle speeds in each corridor (subplot 2)
-                    plt2 = plot!(plt2, sol.t ./ 60, C_speeds[:, i, j, k],
+                    # Would be nice if I could do this outside the for loop...
+                    my_C_speeds = speed_density_curve.(v_f=my_v_f, a=my_a, C=sol[kc[i, j, k]], kc_jam=my_kc_jam[i, j, k])
+
+                    plt2 = plot!(plt2, sol.t ./ 60, my_C_speeds,
                         label="u: c$k, p$i → p$j",
                         title="average speeds (assume my_v_f=90 kmh)",
                         linewidth=3, linestyle=my_linestyles[k], color=this_color)
@@ -245,44 +267,29 @@ function build_symbolic_model_diurnal(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0
         plt3 = annotate!(plt3, (x_actual, y_actual, text(param_text, :left, 8, :black, RGBA(0, 0, 0, 1))))
     end
 
+
+    # Create subplot 4, speed-density curve (example for c1: p1 → p2)
+    my_C_range = [0.0:0.01:1.0;]
+    my_speeds_test = speed_density_curve.(v_f=my_v_f, a=my_a, C=my_C_range, kc_jam=my_kc_jam[1, 2, 1])
+    my_speeds_direct = speed_density_curve.(v_f=my_v_f, a=my_a, C=sol[kc[1, 2, 1]], kc_jam=my_kc_jam[1, 2, 1])
+    plt4 = plot(my_C_range, my_speeds_test, label="speed-density relation", title="speed-density curve: c1, p1 → p2", ylabel="avg speed", xlabel="density")
+    plt4 = vline!(plt4, [(1 / my_kc_jam[1, 2, 1]) / 2], label="my C_half")
+    plt4 = plot!(plt4, sol[kc[1, 2, 1]], my_speeds_direct, label="my speeds (directly calculated)", linewidth=3)
+
     # --- Combine into final layout ---
-    plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 1200))
+    layout = @layout [
+        a d
+        b _
+        c _
+    ]
+
+    plt = plot(plt1, plt4, plt2, plt3, layout=layout, size=(1200, 1200))
+
+    #plt = plot(plt1, plt2, plt3, layout=@layout([a; b; c]), link=:x, size=(800, 1200))
     return model, prob, sol, plt
 
 end
 
-#####################################
-## Calculate speeds from densities ##
-#####################################
-
-function calc_space_mean_speed_alternative(v_f, kc, my_kc_jam; a=0.5, Np=2, Nc=2)
-    #=
-        Returns:
-            - u_s: float
-                average speed for vehicles in a given traffic flow. If negative, return 0.
-        Arguments:
-            - v_f: float
-                free-flow velocity
-            - C: float
-                vehicle density (in corridor C)
-            - C_half:
-                threshold value of vehicle density, where u_s = 1/2 * v_f
-    =#
-    kc_jam = 1 ./ my_kc_jam
-    display(kc_jam)
-    kc_half = kc_jam ./ 2
-    t_steps = length(kc)
-    u_s = Array{Float64}(undef, t_steps, Np, Np, Nc) # is this the right order? Or should Nc go first?
-    for i in 1:Np
-        for j in 1:Np
-            for k in 1:Nc
-                u_s[:, i, j, k] .= [-(v_f / pi) * atan.(a * (kc[t][i, j, k] - kc_half[i, j, k])) + (v_f / 2) for t in 1:length(kc)]
-            end
-        end
-    end
-    #u_s .= [-(v_f ./ pi) .* atan.(a .* (C[t] .- C_half)) .+ (v_f ./ 2) for t in 1:length(C)]
-    return max.(u_s, 0.0)
-end
 
 ######################
 # Get emission rates #
@@ -300,6 +307,48 @@ end  # module
 #################################
 # OLD STUFF, DON'T WANT TO LOSE #
 #################################
+
+#=
+Not sure why this function didn't work? It led to speeds very very close to v_f,
+even at high densities (above jam density)
+=#
+function calc_space_mean_speed_alternative(v_f, kc, my_kc_jam; a=0.5, Np=2, Nc=2)
+    #=
+        Returns:
+            - u_s: float
+                average speed for vehicles in a given traffic flow. If negative, return 0.
+        Arguments:
+            - v_f: float
+                free-flow velocity
+            - C: float
+                vehicle density (in corridor C)
+            - C_half:
+                threshold value of vehicle density, where u_s = 1/2 * v_f
+    =#
+
+    kc_jam = my_kc_jam #1 ./ my_kc_jam
+    display(kc_jam)
+    kc_half = kc_jam ./ 2
+    t_steps = length(kc)
+
+    u_s = Array{Float64}(undef, t_steps, Np, Np, Nc) # is this the right order? Or should Nc go first?
+    for i in 1:Np
+        for j in 1:Np
+            for k in 1:Nc
+                #u_s[i, j, k] .= speed_density_curve.(v_f=v_f, a=a, C=kc[i, j, k], C_half=kc_half[i, j, k])
+                # Maybe below version doesn't work because I do a list over t?
+                u_s[:, i, j, k] .= [speed_density_curve.(v_f=v_f, a=a, C=kc[t][i, j, k], C_half=kc_half[i, j, k]) for t in 1:length(kc)]
+
+                #u_s[:, i, j, k] .= [(v_f / ((pi / 2 - atan(a .* (0 .- kc_half[i, j, k]))) / pi)) .* (pi / 2 - atan.(a .* (kc[t][i, j, k] .- kc_half[i, j, k]))) / pi for t in 1:length(kc)]
+                #u_s[:, i, j, k] .= [-(v_f / pi) * atan.(a * v_f * (tan.(pi .* (kc[t][i, j, k] .- 0.5)) - kc_half[i, j, k])) + (v_f / 2) for t in 1:length(kc)]
+            end
+        end
+    end
+    #u_s .= [-(v_f ./ pi) .* atan.(a .* (C[t] .- C_half)) .+ (v_f ./ 2) for t in 1:length(C)]
+    return max.(u_s, 0.0)
+
+    # \frac{-v}{\pi}\arctan\left(av\cdot\left(\tan\left(\pi\left(x+.5\right)\right)\ -\ h\right)\right)
+end
 
 #=
 function build_symbolic_model_diurnal_NEW_NOTATION(; make_prob=true, make_plot=true, Np=2, Nc=1,
