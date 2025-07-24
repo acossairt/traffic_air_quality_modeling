@@ -171,8 +171,6 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
     EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(my_v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kp .* γ .* time_rescale
     ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(my_v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kc .* time_rescale
 
-    println("Hello 1")
-
     #=
     Define equations for model:
         Notice there are only two equations in the population model, regardless of 
@@ -192,11 +190,8 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
         γ_eqs...   # <-- include the triple dots to splice the equations into the list
     ]
 
-    println("Hello 2")
-
     # Build model symbolically
     @mtkbuild model = ODESystem(eqs, t)
-    println("Hello 3")
 
     #=
     Solve problem, passing initial conditions for variables, a time range, and parameter
@@ -206,11 +201,9 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
         initial conditions.
     =#
     prob = ODEProblem(model, [kp => my_kp, kc => my_kc, u => my_u, v => my_v], (0.0, t_end), [α => my_α, kc_jam => my_kc_jam, period => my_period])
-    println("Hello 4")
 
     # Solve problem
     sol = solve(prob, Tsit5())
-    println("Hello 5")
 
     #=
     Plot results:
