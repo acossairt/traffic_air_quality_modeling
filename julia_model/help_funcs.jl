@@ -139,8 +139,8 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
     =#
 
     # Version 0.0: original
-    EnFlx(kp, kc, γ, α, kc_jam) = exp.(-α .* kc_jam .* kc) .* kp .* γ .* time_rescale
-    ExFlx(kc, kc_jam) = exp.(-kc_jam .* kc) .* kc .* time_rescale
+    #EnFlx(kp, kc, γ, α, kc_jam) = exp.(-α .* kc_jam .* kc) .* kp .* γ .* time_rescale
+    #ExFlx(kc, kc_jam) = exp.(-kc_jam .* kc) .* kc .* time_rescale
 
     # Version 0.1: testing whether an external function would have worked for 
     #   original equation (spoiler: it wouldn't have worked)
@@ -166,6 +166,13 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
     #EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kp .* γ .* time_rescale
     #ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kc .* time_rescale
 
+    # Version 3.0: try defining function locally
+    avg_space_mean_speed(v_f, a, C, C_half) = (v_f ./ ((pi / 2 .- atan.(a .* (0 .- C_half))) ./ pi)) .* (pi / 2 .- atan.(a .* (C .- C_half))) ./ pi
+    EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(my_v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kp .* γ .* time_rescale
+    ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(my_v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kc .* time_rescale
+
+    println("Hello 1")
+
     #=
     Define equations for model:
         Notice there are only two equations in the population model, regardless of 
@@ -185,8 +192,11 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
         γ_eqs...   # <-- include the triple dots to splice the equations into the list
     ]
 
+    println("Hello 2")
+
     # Build model symbolically
     @mtkbuild model = ODESystem(eqs, t)
+    println("Hello 3")
 
     #=
     Solve problem, passing initial conditions for variables, a time range, and parameter
@@ -196,9 +206,11 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
         initial conditions.
     =#
     prob = ODEProblem(model, [kp => my_kp, kc => my_kc, u => my_u, v => my_v], (0.0, t_end), [α => my_α, kc_jam => my_kc_jam, period => my_period])
+    println("Hello 4")
 
     # Solve problem
     sol = solve(prob, Tsit5())
+    println("Hello 5")
 
     #=
     Plot results:
