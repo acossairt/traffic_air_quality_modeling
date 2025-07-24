@@ -163,8 +163,8 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
 
     # Version 2.0: calculate v in external function, then multiply
     #v = speed_density_curve.(my_v_f, my_a, kc, kc_jam)
-    #EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kp .* γ .* time_rescale
-    #ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kc .* time_rescale
+    EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kp .* γ .* time_rescale
+    ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kc .* time_rescale
 
     # Version 3.0: try defining function locally
     avg_space_mean_speed(v_f, a, C, C_half) = (v_f ./ ((pi / 2 .- atan.(a .* (0 .- C_half))) ./ pi)) .* (pi / 2 .- atan.(a .* (C .- C_half))) ./ pi

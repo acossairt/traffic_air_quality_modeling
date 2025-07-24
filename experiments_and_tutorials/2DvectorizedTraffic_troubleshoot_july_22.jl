@@ -3,20 +3,33 @@ aurora_path_to_help_funcs = "/Users/auroracossairt/opt/traffic_air_quality_model
 marty_path_to_help_funcs = "/Users/janderie/work/cmpting/git/traffic_air_quality_modeling/julia_model/help_funcs.jl"
 include(marty_path_to_help_funcs) # CHANGE FOR YOURSELF
 using .HelpFuncs
-using ModelingToolkit, DifferentialEquations, Plots, LinearAlgebra
+using ModelingToolkit, DifferentialEquations, Plots, LinearAlgebra, Printf
 
 #=
 Set initial conditions, parameters, and other arguments to pass to model solver
 =#
 
+println("Setting up model parameters...")
+
+# Set number of patches and corridors
+
 Np = 2 # Number of patches
 Nc = 1 # Number of corridors
+
+@printf "Number of patches: %d\n" Np
+@printf "Number of corridors: %d\n" Nc
 
 # Set initial conditions
 kp_init = [1.0; 0.0]
 kc_init = zeros(Np, Np, Nc)
 u_init = 1
 v_init = 0
+
+println("Initial patch densities (kp_init):")
+display(kp_init)
+println("Initial corridor densities (kc_init):")
+display(kc_init)
+
 
 # Set timescale
 my_period = 1440    # 24 hours, in minutes
@@ -48,6 +61,8 @@ my_a = 20
 #=
 Build model, solve problem, plot results, and save
 =#
+
+println("Building model and solving...  ")
 
 model, prob, sol, plt = HelpFuncs.build_symbolic_model(Np=Np, Nc=Nc,
     my_kp=kp_init, my_kc=kc_init, my_u=u_init, my_v=v_init, my_α=my_α, my_kc_jam=my_kc_jam,
