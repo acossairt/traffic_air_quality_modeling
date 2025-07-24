@@ -1,4 +1,0 @@
-#!/bin/sh
-#export DISPLAY=:0.0
-/Applications/xppaut $1
-

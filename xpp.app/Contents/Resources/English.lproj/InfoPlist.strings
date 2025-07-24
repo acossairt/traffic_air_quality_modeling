@@ -1,4 +1,0 @@
-CFBundleName = "xpp";
-CFBundleShortVersionString = "6.10";
-CFBundleGetInfoString = "xpp version 6.10 Copyright 2011 Bard Ermentrout";
-NSHumanReadableCopyright = "Copyright 2011 Bard Ermentrout.";
