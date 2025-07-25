@@ -26,7 +26,7 @@ export α, kc_half_jam
 @parameters period
 export period
 
-# Create variables for population model 
+# Create variables for population model with travel demand
 @variables kp(t)[1:Np] kc(t)[1:Np, 1:Np, 1:Nc] γ(t)[1:Np]
 export kp, kc, γ
 
@@ -53,6 +53,7 @@ Shift demand function left or right:
     automatically be passed to `f()`` to generate `γ`.
 =#
 v_shifted(shift) = v * cos(2 * π * shift / period) - u * sin(2 * π * shift / period)
+
 
 # How to create options for periodic_logistic vs. static?
 γ_eqs = [

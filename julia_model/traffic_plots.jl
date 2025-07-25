@@ -2,8 +2,10 @@ module traffic_plots
 
 using Plots
 
-aurora_path_to_model = "/Users/auroracossairt/opt/traffic_air_quality_modeling/julia_model/traffic_model.jl"
-include(aurora_path_to_model)
+#aurora_path_to_model = "/Users/auroracossairt/opt/traffic_air_quality_modeling/julia_model/traffic_model.jl"
+#include(aurora_path_to_model)
+marty_path_to_model = "/Users/janderie/work/cmpting/git/traffic_air_quality_modeling/julia_model/traffic_model.jl"
+include(marty_path_to_model)
 using .traffic_model
 
 export plot_results
