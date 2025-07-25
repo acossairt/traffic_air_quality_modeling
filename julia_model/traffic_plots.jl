@@ -25,6 +25,7 @@ function plot_results(sol)
     example_kc_half_jam = sol.prob.ps[:kc_half_jam][1, 2, 1]  # subplot 4
     example_v_f = sol.prob.ps[:v_f][1, 2, 1]                  # subplot 4
     my_a = sol.prob.ps[:a]                                    # subplot 4
+    my_λ = sol.prob.ps[:λ]                                    # subplot 2
 
     # Define accessories for plots (colors, linestyles, and legend specs)
     my_colors = [:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2]
@@ -32,7 +33,7 @@ function plot_results(sol)
     legend_loc = Nc > 1 || Np > 2 ? :right : :topleft
 
     # Set up subplots
-    plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=18, xguidefontsize=14, yguidefontsize=14, ylabel="population", legend=legend_loc, legend_background_color=RGBA(1, 1, 1, 0.5))
+    plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=14, xguidefontsize=14, yguidefontsize=14, ylabel="population", legend=legend_loc, legend_background_color=RGBA(1, 1, 1, 0.5))
     plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", legend=:right, legend_background_color=RGBA(1, 1, 1, 0.5))
     plt3 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", legend=:right, legend_background_color=RGBA(1, 1, 1, 0.5), palette=:lightrainbow)
     plt4 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="population density (k)", ylabel="avg speeds (v)")
@@ -64,6 +65,9 @@ function plot_results(sol)
 
     # Attach annotations to subplot 3
     plt3 = annotate!(plt3, (x_actual, y_actual, text(param_text, :left, 8, :black, RGBA(0, 0, 0, 1))))
+
+    # Set subplot 1 title
+    plt3 = title!(plt3, "demand function")
 
     ###########################################
     # Patch-specific plots (subplots 1 and 3) #
@@ -100,6 +104,7 @@ function plot_results(sol)
                     # Extract parameter values assigned in this problem
                     this_kc_half_jam = sol.prob.ps[:kc_half_jam][i, j, k] #kc_half_jam[i, j, k]
                     this_v_f = sol.prob.ps[:v_f][i, j, k]
+                    this_v_f_kmh = this_v_f * 60 # convert to kmh
                     this_a = sol.prob.ps[:a]
 
                     # Plot corridor population densities (subplot 1)
@@ -113,12 +118,13 @@ function plot_results(sol)
                         linestyle=my_linestyles[k], color=this_color)
 
                     # Calculate average speeds... would prefer to do this outside the loop...
-                    my_C_speeds = avg_speed(this_v_f, this_a, sol[kc[i, j, k]], this_kc_half_jam)
+                    # NOTE: multiplied by 60 for plotting purposes??
+                    my_C_speeds = avg_speed(my_λ, this_v_f, this_a, sol[kc[i, j, k]], this_kc_half_jam) .* 60
 
                     # Plot average vehicle speeds in each corridor (subplot 2)
                     plt2 = plot!(plt2, sol.t ./ 60, my_C_speeds,
                         label="u: c$k, p$i → p$j",
-                        title="average speeds (assume my_v_f=90 kmh)",
+                        title="average speeds (assume v_f=$this_v_f_kmh kmh)",
                         linewidth=3, linestyle=my_linestyles[k], color=this_color)
 
                     # Update total population count
@@ -137,13 +143,14 @@ function plot_results(sol)
     my_C_range = [0.0:0.01:1.0;]
 
     # Test on corridor 1, p1 → p2
-    my_speeds_test = avg_speed.(example_v_f, my_a, my_C_range, example_kc_half_jam)
-    my_speeds_direct = avg_speed.(example_v_f, my_a, sol[kc[1, 2, 1]], example_kc_half_jam)
-    my_speeds_old_test = old_avg_speed.(my_C_range, example_kc_half_jam)
-    my_speeds_old_direct = old_avg_speed.(sol[kc[1, 2, 1]], example_kc_half_jam)
-    plt4 = plot(my_C_range, my_speeds_test, label="speed-density relation", title="speed-density curve: c1, p1 → p2", ylabel="avg speed", xlabel="density")
-    plt4 = plot!(plt4, my_C_range, my_speeds_old_test, label="old speed-density relation")
-    plt4 = vline!(plt4, [(example_kc_half_jam) ./ 2], label="my C_half")
+    # NOTE: multiplied everything by 60 for plotting??
+    my_speeds_test = avg_speed.(my_λ, example_v_f, my_a, my_C_range, example_kc_half_jam) .* 60
+    my_speeds_direct = avg_speed.(my_λ, example_v_f, my_a, sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
+    my_speeds_old_test = old_avg_speed.(my_C_range, example_kc_half_jam) .* 60
+    my_speeds_old_direct = old_avg_speed.(sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
+    plt4 = plot(my_C_range, my_speeds_test, label="speed-density relation (λ=1)", title="speed-density curve: c1, p1 → p2, λ: $my_λ", ylabel="avg speed", xlabel="density")
+    plt4 = plot!(plt4, my_C_range, my_speeds_old_test, label="old speed-density relation (λ=0)")
+    plt4 = vline!(plt4, [example_kc_half_jam], label="my C_half")
     plt4 = plot!(plt4, sol[kc[1, 2, 1]], my_speeds_direct, label="my speeds (directly calculated)", linewidth=3)
     plt4 = plot!(plt4, sol[kc[1, 2, 1]], my_speeds_old_direct, label="my speeds OLD (directly calculated)", linewidth=3)
 

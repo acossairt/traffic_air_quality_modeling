@@ -67,14 +67,15 @@ my_x0 = 0.99
 my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
 # Parameters for calculating average space-mean speed, and therefore fluxes
-my_a = 100
-v_f_base = 90
-my_v_f = v_f_base * ones(Np, Np, Nc)  # Inverse road capacity (for now, assume same for all corridors)
+my_λ = 1
+my_a = 50
+v_f_base = 48.28
+my_v_f = v_f_base / 60 * ones(Np, Np, Nc)  # Divided by 60 so that this is km per min
 my_v_f[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 0 # no movement in loops
 println("Free-flow velocities (my_v_f):")
 display(my_v_f)
 
-p = [v_f => my_v_f, a => my_a,
+p = [v_f => my_v_f, a => my_a, λ => my_λ,
     r => my_r, x_0 => my_x0, L => my_L, shift => my_shift,
     α => my_α, kc_half_jam => my_kc_half_jam, period => my_period
 ];
@@ -98,24 +99,19 @@ println("Runs done!")
 
 #=
 Calculate average speeds
-    Currently have to create an object `long_kc_half_jam` so that the broadcasting works.
-    Also, have to build my speed-density function locally. I would rather use
-    my existing `avg_speed()` function which I exported from .traffic_model(),
-    but for some reason it doesn't work? 
+    Currently have to create an object `long_kc_half_jam` so that the broadcasting works. 
     Also, even after all that, I still am computing the average speeds locally in my
     plotting functions...
 =#
 
-
 println("Calculate average space-mean speeds...")
 N = length(sol)
 long_kc_half_jam = [my_kc_half_jam for i in 1:N]
-long_v_f = [my_v_f for i in 1:N]# should I use sol.prob.ps[:v_f] instead of my_v_f?
+long_v_f = [my_v_f for i in 1:N] # should I use sol.prob.ps[:v_f] instead of my_v_f?
 avg_v = avg_speed.(long_v_f, my_a, sol[kc], long_kc_half_jam)
 
 println("Speeds")
 display(avg_v)
-
 
 println("Plotting results...")
 traffic_plots.plot_results(sol)

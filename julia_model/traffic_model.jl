@@ -11,8 +11,8 @@ Nc = 1
 export Np, Nc
 
 # Create parameters for speed-density curve
-@parameters v_f[1:Np, 1:Np, 1:Nc] a
-export v_f, a
+@parameters v_f[1:Np, 1:Np, 1:Nc] a λ
+export v_f, a, λ
 
 # Create parameters for "demand-to-leave" function
 @parameters r x_0 L shift
@@ -68,8 +68,8 @@ time_rescale = 1440 / period
 # Define speed-density curve
 η(a, kc, kc_half_jam) = (pi / 2 .- atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, asymptotically approaches y=0
 ϕ(a, kc, kc_half_jam) = η(a, kc, kc_half_jam) ./ η(a, 0.0, kc_half_jam)        # rescale so y-range is (0,1)
-avg_speed(v_f, a, kc, kc_half_jam) = v_f .* ϕ(a, kc, kc_half_jam)          # rescale so y-intercept == v_f
-export avg_speed
+new_avg_speed(v_f, a, kc, kc_half_jam) = v_f .* ϕ(a, kc, kc_half_jam)          # rescale so y-intercept == v_f
+export new_avg_speed
 # Desmos version for convenience
 # (v_f / ((pi / 2 - arctan(a * (0 - h))) / pi)) * (pi / 2 - arctan(a * (x - h))) / pi
 
@@ -78,6 +78,10 @@ export avg_speed
 old_avg_speed(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
 export old_avg_speed
 
+# Options! Choose your own adventure
+avg_speed(λ, v_f, a, kc, kc_half_jam) = λ .* new_avg_speed(v_f, a, kc, kc_half_jam) + (1 - λ) .* old_avg_speed(kc, kc_half_jam)
+export avg_speed
+
 #=
 Define the corridor flux matrices:
     Notice the use of `.` notation before each arithmetic operation, but NOT before 
@@ -85,8 +89,8 @@ Define the corridor flux matrices:
     existing vector (or matrix) which has exactly same shape as the RHS.
 =#
 
-EntryFlux(kp, kc, γ, α, kc_half_jam, v_f) = avg_speed(v_f, a, kc, kc_half_jam) .* kp .* γ .* time_rescale
-ExitFlux(kc, kc_half_jam, v_f) = avg_speed(v_f, a, kc, kc_half_jam) .* kc .* time_rescale
+EntryFlux(kp, kc, γ, α, kc_half_jam, v_f, λ) = avg_speed(λ, v_f, a, kc, kc_half_jam) .* kp .* γ .* time_rescale
+ExitFlux(kc, kc_half_jam, v_f, λ) = avg_speed(λ, v_f, a, kc, kc_half_jam) .* kc .* time_rescale
 
 #=
 Define equations for model:
@@ -100,8 +104,8 @@ Define equations for model:
     (2,2,1) into an object of shape (2,). (Assuming Np=2)
 =#
 eqs = [
-    D.(kp) ~ [sum(ExitFlux(kc, kc_half_jam, v_f)[:, i, :]) for i in 1:Np] .- [sum(EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f)[i, :, :]) for i in 1:Np],
-    D.(kc) ~ collect(-ExitFlux(kc, kc_half_jam, v_f) + EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f)),
+    D.(kp) ~ [sum(ExitFlux(kc, kc_half_jam, v_f, λ)[:, i, :]) for i in 1:Np] .- [sum(EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ)[i, :, :]) for i in 1:Np],
+    D.(kc) ~ collect(-ExitFlux(kc, kc_half_jam, v_f, λ) + EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ)),
     D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
     D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
     γ_eqs...   # <-- include the triple dots to splice the equations into the list
