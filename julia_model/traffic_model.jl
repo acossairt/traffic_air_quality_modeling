@@ -10,10 +10,6 @@ Np = 2
 Nc = 1
 export Np, Nc
 
-# Why didn't I need this in the previous version?
-#@parameters t
-#D = Differential(t)
-
 # Create parameters for speed-density curve
 @parameters v_f[1:Np, 1:Np, 1:Nc] a
 export v_f, a
@@ -77,7 +73,6 @@ export avg_speed
 # Desmos version for convenience
 # (v_f / ((pi / 2 - arctan(a * (0 - h))) / pi)) * (pi / 2 - arctan(a * (x - h))) / pi
 
-
 # OLD version of speed-density curve
 β(kc_half_jam) = 1 ./ (kc_half_jam .* 2)
 old_avg_speed(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
@@ -113,7 +108,7 @@ eqs = [
 ]
 
 #=
-Why don't I export these ones?
+Why don't I export the following functions?
 =#
 
 function construct_ode_system()
