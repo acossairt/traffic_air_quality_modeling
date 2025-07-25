@@ -25,8 +25,7 @@ ode = traffic_model.construct_ode_system() # Why does this get called before eve
 #@parameters t
 #D = Differential(t)
 
-# lets define the parameters that we want in this study script
-
+# ? Do I actually need to do this in hard code?
 # Set number of patches and corridors
 Np = 2
 Nc = 1
@@ -36,9 +35,9 @@ Nc = 1
 
 # Set timescale
 my_period = 1440         # 24 hours, in minutes
-t_end = my_period     # Change if you only want to examine part of a day (< my_period), or multiple days (> my_period)
+t_end = my_period        # Change if you only want to examine part of a day (< my_period), or multiple days (> my_period)
 scale = 1440 / my_period # if using a period other than 1440, this will rescale the other parameters
-tspan = (0.0, t_end);     #time span in years.
+tspan = (0.0, t_end);    #time span in years.
 
 # Set initial conditions
 kp_init = [1.0; 0.0]
@@ -58,15 +57,16 @@ println("Setting up parameters...")
 # Set parameters
 my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
 kc_half_jam_base = 10
-my_kc_half_jam = (1 / kc_half_jam_base) / 2 * ones(Np, Np, Nc)  # Inverse road capacity (for now, assume same for all corridors)
+my_kc_half_jam = (1 / kc_half_jam_base) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
 my_kc_half_jam[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 1e9 # set diagonal values to almost Inf
 
+# Parameters for calculating demand (diurnal function)
 my_L = 0.6
 my_r = 100
 my_x0 = 0.99
 my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
-# Parameters for calculating space-mean speed
+# Parameters for calculating average space-mean speed, and therefore fluxes
 my_a = 100
 v_f_base = 90
 my_v_f = v_f_base * ones(Np, Np, Nc)  # Inverse road capacity (for now, assume same for all corridors)
@@ -79,22 +79,21 @@ p = [v_f => my_v_f, a => my_a,
     α => my_α, kc_half_jam => my_kc_half_jam, period => my_period
 ];
 
+# Simplify structure and set up model
 println("Simplifying structure...") # whatever that means?
 simple_sys = structural_simplify(ode)
 
 println("Creating problem...")
 prob = traffic_model.construct_ode_problem(simple_sys, tspan, u0, p)
-#prob = construct_ode_problem(simple_sys, tspan, u0, p)
 
 println("Model setup done!")
 
-# put it into a function, since according to documentation thats faster
+# put it into a function, since according to documentation that's faster
 function construct_solve(prob)
     return solve(prob, Tsit5())
 end
 
 sol = construct_solve(prob)
-N = length(sol)
 println("Runs done!")
 
 #=
@@ -109,6 +108,7 @@ Calculate average speeds
 
 #=
 println("Calculate average space-mean speeds...")
+N = length(sol)
 long_kc_half_jam = [my_kc_half_jam for i in 1:N] # should I use sol.prob.ps[:v_f] instead of my_v_f?
 long_v_f = [my_v_f for i in 1:N]
 
@@ -129,6 +129,3 @@ display(avg_v)
 
 println("Plotting results...")
 traffic_plots.plot_results(sol)
-#display(fig)
-
-#println(prob.ps[kc_half_jam])
