@@ -106,26 +106,16 @@ Calculate average speeds
     plotting functions...
 =#
 
-#=
+
 println("Calculate average space-mean speeds...")
 N = length(sol)
-long_kc_half_jam = [my_kc_half_jam for i in 1:N] # should I use sol.prob.ps[:v_f] instead of my_v_f?
-long_v_f = [my_v_f for i in 1:N]
-
-function local_speed_density_curve(v_f, a, C, kc_half_jam)
-    #C_half = (1 ./ kc_jam) ./ 2
-    return (v_f ./ ((pi / 2 .- atan.(a .* (0 .- kc_half_jam))) ./ pi)) .* (pi / 2 .- atan.(a .* (C .- kc_half_jam))) ./ pi
-end
-
-#avg_v = local_speed_density_curve.(long_v_f, my_a, sol[kc], long_kc_half_jam)
-
-# I would rather use my existing function for avg_speed, but it doesn't work?
-#avg_v = traffic_model.avg_speed.(v_f, a, sol[kc], kc_half_jam)
-avg_v = traffic_model.avg_speed.(long_v_f, my_a, sol[kc], long_kc_half_jam)
+long_kc_half_jam = [my_kc_half_jam for i in 1:N]
+long_v_f = [my_v_f for i in 1:N]# should I use sol.prob.ps[:v_f] instead of my_v_f?
+avg_v = avg_speed.(long_v_f, my_a, sol[kc], long_kc_half_jam)
 
 println("Speeds")
 display(avg_v)
-=#
+
 
 println("Plotting results...")
 traffic_plots.plot_results(sol)

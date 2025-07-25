@@ -63,7 +63,7 @@ function plot_results(sol)
     y_actual = ylims[1] + (ylims[2] - ylims[1]) * y_pos
 
     # Attach annotations to subplot 3
-    plt3 = annotate!(plt3, (x_actual, y_actual, text(param_text, :left, 8, :black, RGBA(0, 0, 0, 1))))vcx
+    plt3 = annotate!(plt3, (x_actual, y_actual, text(param_text, :left, 8, :black, RGBA(0, 0, 0, 1))))
 
     ###########################################
     # Patch-specific plots (subplots 1 and 3) #
