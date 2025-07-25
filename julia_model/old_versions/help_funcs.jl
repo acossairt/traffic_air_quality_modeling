@@ -29,8 +29,8 @@ end
 ##################
 
 # New version, ensure that flux functions are based on speed-density function
-function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
-    my_kc_jam, my_period=1440, γ_version="static", t_end=120, my_v_f=90, my_a=1, my_L=0.6, my_r=10,
+function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_v_f, my_u=1, my_v=0, my_α,
+    my_kc_jam, my_period=1440, γ_version="static", t_end=120, my_a=1, my_L=0.6, my_r=10,
     my_x0=0.8, my_shift=0, x_pos=0.05, y_pos=0.15)
     #=
     Arguments
@@ -85,6 +85,7 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
     # Create parameters
     @parameters α[1:Np]                # tolerance for congestion (per patch)
     @parameters kc_jam[1:Np, 1:Np, 1:Nc]   # inverse road capacity (per corridor)
+    @parameters v_f #[1:Np, 1:Np, 1:Nc]   # inverse road capacity (per corridor)
     @parameters period                 # period for dynamical clock
 
     #=
@@ -162,14 +163,14 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
     #ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* ((1.0 ./ ((pi / 2 .- atan.(my_a .* (0 .- (1 ./ kc_jam) ./ 2))) ./ pi)) .* (pi ./ 2 .- atan.(my_a .* (kc .- (1 ./ kc_jam) ./ 2))) ./ pi) .* kc .* time_rescale
 
     # Version 2.0: calculate v in external function, then multiply
-    #v = speed_density_curve.(my_v_f, my_a, kc, kc_jam)
-    EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kp .* γ .* time_rescale
-    ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* v .* kc .* time_rescale
+    #avg_space_mean_speed = speed_density_curve.(my_v_f, my_a, kc, kc_jam)
+    #EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed .* kp .* γ .* time_rescale
+    #ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed .* kc .* time_rescale
 
     # Version 3.0: try defining function locally
     avg_space_mean_speed(v_f, a, C, C_half) = (v_f ./ ((pi / 2 .- atan.(a .* (0 .- C_half))) ./ pi)) .* (pi / 2 .- atan.(a .* (C .- C_half))) ./ pi
-    EnFlx(kp, kc, γ, α, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(my_v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kp .* γ .* time_rescale
-    ExFlx(kc, kc_jam) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(my_v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kc .* time_rescale
+    EnFlx(kp, kc, γ, α, kc_jam, v_f) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kp .* γ .* time_rescale
+    ExFlx(kc, kc_jam, v_f) = ((1 ./ kc_jam) ./ 2) .* avg_space_mean_speed(v_f, my_a, kc, (1 ./ kc_jam) ./ 2) .* kc .* time_rescale
 
     #=
     Define equations for model:
@@ -183,8 +184,8 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
         (2,2,1) into an object of shape (2,). (Assuming Np=2)
     =#
     eqs = [
-        D.(kp) ~ [sum(ExFlx(kc, kc_jam)[:, i, :]) for i in 1:Np] .- [sum(EnFlx(kp, kc, γ, α[1], kc_jam)[i, :, :]) for i in 1:Np],
-        D.(kc) ~ collect(-ExFlx(kc, kc_jam) + EnFlx(kp, kc, γ, α[1], kc_jam)),
+        D.(kp) ~ [sum(ExFlx(kc, kc_jam, v_f)[:, i, :]) for i in 1:Np] .- [sum(EnFlx(kp, kc, γ, α[1], kc_jam, v_f)[i, :, :]) for i in 1:Np],
+        D.(kc) ~ collect(-ExFlx(kc, kc_jam, v_f) + EnFlx(kp, kc, γ, α[1], kc_jam, v_f)),
         D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
         D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
         γ_eqs...   # <-- include the triple dots to splice the equations into the list
@@ -200,7 +201,7 @@ function build_symbolic_model(; Np=2, Nc=1, my_kp, my_kc, my_u=1, my_v=0, my_α,
         within our equations as an "observed" variable, so it does not require 
         initial conditions.
     =#
-    prob = ODEProblem(model, [kp => my_kp, kc => my_kc, u => my_u, v => my_v], (0.0, t_end), [α => my_α, kc_jam => my_kc_jam, period => my_period])
+    prob = ODEProblem(model, [kp => my_kp, kc => my_kc, u => my_u, v => my_v], (0.0, t_end), [α => my_α, v_f => my_v_f, kc_jam => my_kc_jam, period => my_period])
 
     # Solve problem
     sol = solve(prob, Tsit5())

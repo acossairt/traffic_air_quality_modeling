@@ -32,7 +32,7 @@ u0=[P₁=>0.24,P₂=>0.24,K₁=>0,K₂=>0,G=>2.8,e₁=>0.0004,e₂=>0.0004,z=>0]
 
 Then the ODEProblem function can be called with u0.=#
 
-@variables P₁(t) P₂(t) K₁(t) K₂(t) G(t) e₁(t) e₂(t) z(t)=0
+@variables P₁(t) P₂(t) K₁(t) K₂(t) G(t) e₁(t) e₂(t) z(t) = 0
 export P₁, P₂, K₁, K₂, G, e₁, e₂, z
 
 #=below is a differentiable threshold function that goes from 0
@@ -40,15 +40,15 @@ to 1 as its argument goes from negative to positive. This keeps
 things well-behaved and physically meaninful (no negative stocks).
 This could be done in many different ways....=#
 
-θ₁(x,p,h) = (max(0,x))^p/(h^p + (max(0,x))^p)
+θ₁(x, p, h) = (max(0, x))^p / (h^p + (max(0, x))^p)
 
-θ(x) = θ₁(x,5,0.0001)
+θ(x) = θ₁(x, 5, 0.0001)
 export θ
 
 #=this is a differentiable form of max(x,0) - i.e. approximates it very 
 closely with no kink at zero.=#
 
-ϕ(x) = x*θ(x)
+ϕ(x) = x * θ(x)
 export ϕ
 
 #=economic subsystem. Society may use industrial technology
@@ -57,11 +57,11 @@ or a backstop technology that requires only labor inputs.=#
 #=industrial output regime - Cobb-Douglass Technology with constant
 returns to scale.=#
 
-Yᵢ(a,α,K,P) = a*((ϕ(K))^α)*((ϕ(P))^(1-α))
+Yᵢ(a, α, K, P) = a * ((ϕ(K))^α) * ((ϕ(P))^(1 - α))
 export Yᵢ
 
-Yᵢ₁ = Yᵢ(a₁,α₁,K₁,P₁)
-Yᵢ₂ = Yᵢ(a₂,α₂,K₂,P₂)
+Yᵢ₁ = Yᵢ(a₁, α₁, K₁, P₁)
+Yᵢ₂ = Yᵢ(a₂, α₂, K₂, P₂)
 
 
 #= background production regime (labor based production)
@@ -69,19 +69,19 @@ is given by ab₁P₁ but we assume the multiplier is 1. We then
 use the threshold function to switch to industrical production
 only when it is more productive than the backdrop technology.=#
 
-Y(P,Y) = P + ϕ(Y-P)
+Y(P, Y) = P + ϕ(Y - P)
 export Y
 
-Y₁ = Y(P₁,Yᵢ₁)
-Y₂ = Y(P₂,Yᵢ₂)
+Y₁ = Y(P₁, Yᵢ₁)
+Y₂ = Y(P₂, Yᵢ₂)
 export Y₁, Y₂
 
 #=emissions from backdrop or industrialized. Assume eb=0.1*e1 in the 
 scenario below, but this is arbitrary. The 'r' in er refers to 
 'realized' caron intensity depending on which technology is used=#
 
-er₁ = θ(P₁-Yᵢ₁)*eb + θ(Yᵢ₁-P₁)*e₁
-er₂ = θ(P₂-Yᵢ₂)*eb + θ(Yᵢ₂-P₂)*e₂
+er₁ = θ(P₁ - Yᵢ₁) * eb + θ(Yᵢ₁ - P₁) * e₁
+er₂ = θ(P₂ - Yᵢ₂) * eb + θ(Yᵢ₂ - P₂) * e₂
 export er₁, er₂
 
 #decarbonization. e1 and e2 obey simple odes with exponential decay. z is a Markov
@@ -100,8 +100,8 @@ export er₁, er₂
 #=investment depends on disposable income... which is income
 beyond a subsistence level Cₘ=#
 
-Yd₁ = ϕ(Y₁ - P₁*Cₘ₁)
-Yd₂ = ϕ(Y₂ - P₂*Cₘ₂)
+Yd₁ = ϕ(Y₁ - P₁ * Cₘ₁)
+Yd₂ = ϕ(Y₂ - P₂ * Cₘ₂)
 export Yd₁, Yd₂
 
 
@@ -122,8 +122,8 @@ For the continous portion we assume  damage = σ₁*exp(G-G₁)*K₁, i.e.
 damages grow expoentially beyond threshold G₁.  The next stage of
 development is to model the stochastic portion.=#
 
-dm₁ = σ₁*dmₓ*exp(G-G₁)/(dmₓ + exp(G-G₁))
-dm₂ = σ₂*dmₓ*exp(G-G₁)/(dmₓ + exp(G-G₁))
+dm₁ = σ₁ * dmₓ * exp(G - G₁) / (dmₓ + exp(G - G₁))
+dm₂ = σ₂ * dmₓ * exp(G - G₁) / (dmₓ + exp(G - G₁))
 export dm₁, dm₂
 
 #= Popuation dynamics.  Local population is logistic growth, migration 
@@ -135,7 +135,7 @@ to migrate (per capita income) and relative welfare perceptions between regions
 
 #define standard logistic
 
-λ(x) = exp(x)/(exp(x)+1)
+λ(x) = exp(x) / (exp(x) + 1)
 export λ
 
 # Then for the migration pressure we get (various attempts and possibilities):
@@ -149,13 +149,13 @@ export λ
 #define a function to calculate the percentage difference between to numbers
 #for code readability
 
-pd(a,b) = (a-b)/(a+b)
+pd(a, b) = (a - b) / (a + b)
 export pd
 
 #not for the migration pressures....
 
-m₁₂ = mp₁₂*pd(Y₂/P₂,Y₁/P₁) - ml₁₂
-m₂₁ = mp₂₁*pd(Y₁/P₁,Y₂/P₂) - ml₂₁
+m₁₂ = mp₁₂ * pd(Y₂ / P₂, Y₁ / P₁) - ml₁₂
+m₂₁ = mp₂₁ * pd(Y₁ / P₁, Y₂ / P₂) - ml₂₁
 export m₁₂, m₂₁
 
 # and for the probability of migration, pᵢⱼ, we get
@@ -169,28 +169,28 @@ export p₁₂, p₂₁
 
 #climate thresholds
 
-ct=θ(G-G₀)#climate threshold for carbon release
-gmax=θ₁(Gₘ-G,3,1)#max carbon in the atmoshpere
+ct = θ(G - G₀)#climate threshold for carbon release
+gmax = θ₁(Gₘ - G, 3, 1)#max carbon in the atmoshpere
 export ct, gmax
 
 #differential equations
 
 eqs = [
-D(P₁) ~ r₁*P₁*(1 - P₁/Kp₁) - r₁₂*P₁*p₁₂ + r₂₁*P₂*p₂₁, #human population dynamics 
-D(P₂) ~ r₂*P₂*(1 - P₂/Kp₂) + r₁₂*P₁*p₁₂ - r₂₁*P₂*p₂₁, # standard logistic.
-D(K₁) ~ s₁*Yd₁ - δ₁*K₁ - dm₁*K₁, #change in capital stock = 
-D(K₂) ~ s₂*Yd₂ - δ₂*K₂ - dm₂*K₂, # savings-depreciation-damages
-D(G)  ~ er₁*Y₁ + er₂*Y₂ - u*(G-2.8) + α*ct*gmax, # global externality.
-D(z)  ~ η*θ(G-Tg)*(1-z), #initiate decarbonization
-D(e₁) ~ -z*re₁*e₁, # decarbonization in region 1
-D(e₂) ~ -z*re₂*e₂, # decarbonization in region 2
+    D(P₁) ~ r₁ * P₁ * (1 - P₁ / Kp₁) - r₁₂ * P₁ * p₁₂ + r₂₁ * P₂ * p₂₁, #human population dynamics 
+    D(P₂) ~ r₂ * P₂ * (1 - P₂ / Kp₂) + r₁₂ * P₁ * p₁₂ - r₂₁ * P₂ * p₂₁, # standard logistic.
+    D(K₁) ~ s₁ * Yd₁ - δ₁ * K₁ - dm₁ * K₁, #change in capital stock = 
+    D(K₂) ~ s₂ * Yd₂ - δ₂ * K₂ - dm₂ * K₂, # savings-depreciation-damages
+    D(G) ~ er₁ * Y₁ + er₂ * Y₂ - u * (G - 2.8) + α * ct * gmax, # global externality.
+    D(z) ~ η * θ(G - Tg) * (1 - z), #initiate decarbonization
+    D(e₁) ~ -z * re₁ * e₁, # decarbonization in region 1
+    D(e₂) ~ -z * re₂ * e₂, # decarbonization in region 2
 ]
 
 
 function construct_ode_system()
     """This function is the main function to construct our model in ModelingToolkit."""
 
-    @named ode = ODESystem(eqs, t);
+    @named ode = ODESystem(eqs, t)
 
     return ode
 
@@ -256,7 +256,7 @@ function construct_sde_problem(sde, tspan, u0, p)
     G₁=>5, G₀=>6.0, Gₘ=>20 #G1=damage threshold, G₀ = climate threshold, Gₘ = max atm carbon 
     ];
     """
-    global prob=SDEProblem(complete(sde), u0, tspan, p);
+    global prob = SDEProblem(complete(sde), u0, tspan, p)
 
     return prob
 
@@ -266,14 +266,14 @@ end # end of function
 #differential equations
 
 eqs = [
-D(P₁) ~ r₁*P₁*(1 - P₁/Kp₁) - r₁₂*P₁*p₁₂ + r₂₁*P₂*p₂₁, #human population dynamics 
-D(P₂) ~ r₂*P₂*(1 - P₂/Kp₂) + r₁₂*P₁*p₁₂ - r₂₁*P₂*p₂₁, # standard logistic.
-D(K₁) ~ s₁*Yd₁ - δ₁*K₁ - dm₁*K₁, #change in capital stock = 
-D(K₂) ~ s₂*Yd₂ - δ₂*K₂ - dm₂*K₂, # savings-depreciation-damages
-D(G)  ~ er₁*Y₁ + er₂*Y₂ - u*(G-2.8) + α*ct*gmax, # global externality.
-D(z)  ~ η*θ(G-Tg)*(1-z), #initiate decarbonization
-D(e₁) ~ -z*re₁*e₁, # decarbonization in region 1
-D(e₂) ~ -z*re₂*e₂, # decarbonization in region 2
+    D(P₁) ~ r₁ * P₁ * (1 - P₁ / Kp₁) - r₁₂ * P₁ * p₁₂ + r₂₁ * P₂ * p₂₁, #human population dynamics 
+    D(P₂) ~ r₂ * P₂ * (1 - P₂ / Kp₂) + r₁₂ * P₁ * p₁₂ - r₂₁ * P₂ * p₂₁, # standard logistic.
+    D(K₁) ~ s₁ * Yd₁ - δ₁ * K₁ - dm₁ * K₁, #change in capital stock = 
+    D(K₂) ~ s₂ * Yd₂ - δ₂ * K₂ - dm₂ * K₂, # savings-depreciation-damages
+    D(G) ~ er₁ * Y₁ + er₂ * Y₂ - u * (G - 2.8) + α * ct * gmax, # global externality.
+    D(z) ~ η * θ(G - Tg) * (1 - z), #initiate decarbonization
+    D(e₁) ~ -z * re₁ * e₁, # decarbonization in region 1
+    D(e₂) ~ -z * re₂ * e₂, # decarbonization in region 2
 ]
 
 
