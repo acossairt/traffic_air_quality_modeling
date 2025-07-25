@@ -57,13 +57,8 @@ u0 = [kc => kc_init, kp => kp_init, γ => γ_init, u => u_init, v => v_init];
 println("Setting up parameters...")
 # Set parameters
 my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
-<<<<<<< HEAD
 kc_half_jam_base = 150
 my_kc_half_jam = (1 / kc_half_jam_base) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
-=======
-kc_half_jam_base = 10
-my_kc_half_jam = ((1 / kc_half_jam_base) / 2) * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
->>>>>>> 6733eb0a8aff0380423a1d8620d73528cb191cf1
 my_kc_half_jam[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 1e9 # set diagonal values to almost Inf
 
 # Parameters for calculating demand (diurnal function)
@@ -74,13 +69,8 @@ my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
 # Parameters for calculating average space-mean speed, and therefore fluxes
 my_λ = 1
-<<<<<<< HEAD
 my_a = 50
 v_f_base = 30
-=======
-my_a = 20
-v_f_base = 48.28
->>>>>>> 6733eb0a8aff0380423a1d8620d73528cb191cf1
 my_v_f = v_f_base / 60 * ones(Np, Np, Nc)  # Divided by 60 so that this is km per min
 my_v_f[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 0 # no movement in loops
 println("Free-flow velocities (my_v_f):")
