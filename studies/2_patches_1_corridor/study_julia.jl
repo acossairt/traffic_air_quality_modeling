@@ -120,7 +120,7 @@ println("Calculate average space-mean speeds...")
 N = length(sol)
 long_kc_half_jam = [my_kc_half_jam for i in 1:N]
 long_v_f = [my_v_f for i in 1:N] # should I use sol.prob.ps[:v_f] instead of my_v_f?
-avg_v = avg_speed.(long_v_f, my_a, sol[kc], long_kc_half_jam)
+avg_v = avg_speed.(my_λ, long_v_f, my_a, sol[kc], long_kc_half_jam)
 
 println("Speeds")
 display(avg_v)

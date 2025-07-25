@@ -111,12 +111,12 @@ function plot_results(sol)
 
                     # Plot corridor population densities (subplot 1)
                     plt1 = plot!(plt1, sol.t ./ 60, sol[kc[i, j, k]],
-                        label="c$k, p$i→p$j (C_jam=1/$this_kc_half_jam)", linewidth=3,
+                        label="kc$k, p$i→p$j", linewidth=3,
                         linestyle=my_linestyles[k], color=this_color)
 
                     # Plot jam densities for each corridor (subplot 1)
                     plt1 = hline!(plt1, [this_kc_half_jam],
-                        label="C_jam=1/$this_kc_half_jam", linewidth=1,
+                        label="kc_half_jam=$this_kc_half_jam", linewidth=1,
                         linestyle=my_linestyles[k], color=this_color)
 
                     # Calculate average speeds... would prefer to do this outside the loop...
