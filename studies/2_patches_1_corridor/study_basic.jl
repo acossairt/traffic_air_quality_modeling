@@ -1,12 +1,12 @@
 # Fast call for helper functions to run model
-#aurora_path_to_model = "/Users/auroracossairt/opt/traffic_air_quality_modeling/julia_model/traffic_model.jl"
-#aurora_path_to_plotting_funcs = "/Users/auroracossairt/opt/traffic_air_quality_modeling/julia_model/traffic_plots.jl"
+aurora_path_to_model = "/Users/auroracossairt/opt/traffic_air_quality_modeling/julia_model/traffic_model.jl"
+aurora_path_to_plotting_funcs = "/Users/auroracossairt/opt/traffic_air_quality_modeling/julia_model/traffic_plots.jl"
 marty_path_to_model = "/Users/janderie/work/cmpting/git/traffic_air_quality_modeling/julia_model/traffic_model.jl"
 marty_path_to_plotting_funcs = "/Users/janderie/work/cmpting/git/traffic_air_quality_modeling/julia_model/traffic_plots.jl"
-include(marty_path_to_model) # CHANGE FOR YOURSELF
-include(marty_path_to_plotting_funcs) # CHANGE FOR YOURSELF
+include(aurora_path_to_model) # CHANGE FOR YOURSELF
+include(aurora_path_to_plotting_funcs) # CHANGE FOR YOURSELF
 
-# For some reason doesn't work if I include and also call the module? 
+# For some reason doesn't work if I include and also call the module?
 # So I just commented out the include
 
 using Printf, ModelingToolkit, DifferentialEquations, LinearAlgebra, Interpolations
@@ -55,10 +55,10 @@ display(kc_init)
 u0 = [kc => kc_init, kp => kp_init, γ => γ_init, u => u_init, v => v_init];
 
 println("Setting up parameters...")
-# Set parameters
+# Set parameters for population model
 my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
-kc_half_jam_base = 150
-my_kc_half_jam = (1 / kc_half_jam_base) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
+kc_half_jam_denominator = 150
+my_kc_half_jam = (1 / kc_half_jam_denominator) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
 my_kc_half_jam[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 1e9 # set diagonal values to almost Inf
 
 # Parameters for calculating demand (diurnal function)
@@ -69,8 +69,8 @@ my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
 # Parameters for calculating average space-mean speed, and therefore fluxes
 my_λ = 1
-my_a = 50
-v_f_base = 30
+my_a = 100
+v_f_base = 90 # free-flow velocity in kmh
 my_v_f = v_f_base / 60 * ones(Np, Np, Nc)  # Divided by 60 so that this is km per min
 my_v_f[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 0 # no movement in loops
 println("Free-flow velocities (my_v_f):")
@@ -114,8 +114,18 @@ avg_v = avg_speed.(my_λ, long_v_f, my_a, sol[kc], long_kc_half_jam)
 
 println("Speeds")
 display(avg_v)
-
 =#
 
 println("Plotting results...")
-traffic_plots.plot_results(sol)
+plt = traffic_plots.plot_results(sol)
+
+# Save plot
+println("Saving plot...")
+demand_function = "periodic_logistic"
+prefix = "study_basic"
+suffix = ""
+savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * demand_function * "_Nc_$Nc" * "_kc_half_jam_denom_$kc_half_jam_denominator" * "_L_$my_L" * "_r_$my_r" * "_x0_$my_x0" * "_shift_$my_shift" * suffix * ".png")
+
+# Display plot
+println("Displaying plot...")
+display(plt)

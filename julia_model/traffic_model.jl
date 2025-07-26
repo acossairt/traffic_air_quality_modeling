@@ -18,13 +18,18 @@ export v_f, a, λ
 @parameters r x_0 L shift
 export r, x_0, L, shift
 
-# Create parameters for population model 
+# Create parameters for population model
 @parameters α[1:Np] kc_half_jam[1:Np, 1:Np, 1:Nc]
 export α, kc_half_jam
 
 # Create parameters for internal "clock" model
 @parameters period
 export period
+
+# Create parameters for "turning off" entry and exit fluxes (test-purposes)
+# Value of 1 keeps flux on, value of 0 turns flux off
+@parameters exit_on = 1 entry_on = 1
+export exit_on, entry_on
 
 # Create variables for population model with travel demand
 @variables kp(t)[1:Np] kc(t)[1:Np, 1:Np, 1:Nc] γ(t)[1:Np]
@@ -57,8 +62,8 @@ v_shifted(shift) = v * cos(2 * π * shift / period) - u * sin(2 * π * shift / p
 
 # How to create options for periodic_logistic vs. static?
 γ_eqs = [
-    γ[1] ~ f(v_shifted(shift), r, x_0, L),
-    γ[2] ~ f(-v_shifted(shift), r, x_0, L)
+    γ[1] ~ f(v_shifted(shift), r, x_0, L), # + 0.001 shift up just a hair so that demand is never 0
+    γ[2] ~ f(-v_shifted(shift), r, x_0, L) # + 0.001
 ]
 
 #=
@@ -90,8 +95,8 @@ Define the corridor flux matrices:
     existing vector (or matrix) which has exactly same shape as the RHS.
 =#
 
-EntryFlux(kp, kc, γ, α, kc_half_jam, v_f, λ) = avg_speed(λ, v_f, a, kc, kc_half_jam) .* kp .* γ .* time_rescale
-ExitFlux(kc, kc_half_jam, v_f, λ) = avg_speed(λ, v_f, a, kc, kc_half_jam) .* kc .* time_rescale
+EntryFlux(kp, kc, γ, α, kc_half_jam, v_f, λ, entry_on) = avg_speed(λ, v_f, a, kc, kc_half_jam) .* kp .* γ .* time_rescale .* entry_on
+ExitFlux(kc, kc_half_jam, v_f, λ, exit_on) = avg_speed(λ, v_f, a, kc, kc_half_jam) .* kc .* time_rescale .* exit_on
 
 #=
 Define equations for model:
@@ -105,8 +110,8 @@ Define equations for model:
     (2,2,1) into an object of shape (2,). (Assuming Np=2)
 =#
 eqs = [
-    D.(kp) ~ [sum(ExitFlux(kc, kc_half_jam, v_f, λ)[:, i, :]) for i in 1:Np] .- [sum(EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ)[i, :, :]) for i in 1:Np],
-    D.(kc) ~ collect(-ExitFlux(kc, kc_half_jam, v_f, λ) + EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ)),
+    D.(kp) ~ [sum(ExitFlux(kc, kc_half_jam, v_f, λ, exit_on)[:, i, :]) for i in 1:Np] .- [sum(EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ, entry_on)[i, :, :]) for i in 1:Np],
+    D.(kc) ~ collect(-ExitFlux(kc, kc_half_jam, v_f, λ, exit_on) + EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ, entry_on)),
     D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
     D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
     γ_eqs...   # <-- include the triple dots to splice the equations into the list
