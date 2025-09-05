@@ -20,15 +20,18 @@ function plot_results(sol)
     =#
 
     # Extract some parameter values which will be displayed or plotted explicitly
+    #println(sol.prob.ps)
     my_L = sol.prob.ps[:L]                                    # subplot 3
     my_r = sol.prob.ps[:r]                                    # subplot 3
     my_x_0 = sol.prob.ps[:x_0]                                # subplot 3
     my_shift = sol.prob.ps[:shift]                            # subplot 3
     example_kc_half_jam = sol.prob.ps[:kc_half_jam][1, 2, 1]  # subplot 4
     example_v_f = sol.prob.ps[:v_f][1, 2, 1]                  # subplot 4
-    my_a = sol.prob.ps[:a]                                    # subplot 4
-    my_λ = sol.prob.ps[:λ]                                    # subplot 2
+    my_λ = sol.prob.ps[:λ]                                    # subplot 4
+    #my_version = sol.prob.ps[:version]                        # subplot 2
     my_shift = sol.prob.ps[:shift]                            # subplot 5
+    #my_kc_crit = sol.prob.ps[:kc_crit]
+    #println("my_version", my_version)
 
     # Define accessories for plots (colors, linestyles, and legend specs)
     my_colors = [:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2]
@@ -110,7 +113,7 @@ function plot_results(sol)
                     this_kc_half_jam = sol.prob.ps[:kc_half_jam][i, j, k] #kc_half_jam[i, j, k]
                     this_v_f = sol.prob.ps[:v_f][i, j, k]
                     this_v_f_kmh = this_v_f * 60 # convert to kmh
-                    this_a = sol.prob.ps[:a]
+                    this_λ = sol.prob.ps[:λ]
 
                     # Plot corridor population densities (subplot 1)
                     plt1 = plot!(plt1, sol.t ./ 60, sol[kc[i, j, k]],
@@ -149,7 +152,7 @@ function plot_results(sol)
 
                     # Calculate average speeds... would prefer to do this outside the loop...
                     # NOTE: multiplied by 60 for plotting purposes??
-                    my_C_speeds = avg_speed(my_λ, this_v_f, this_a, sol[kc[i, j, k]], this_kc_half_jam) .* 60
+                    my_C_speeds = avg_speed(sol[kc[i, j, k]], this_v_f, this_λ, this_kc_half_jam) .* 60
 
                     # Plot average vehicle speeds in each corridor (subplot 2)
                     plt2 = plot!(plt2, sol.t ./ 60, my_C_speeds,
@@ -176,19 +179,25 @@ function plot_results(sol)
     # Create subplot 4, speed-density curve (example for c1: p1 → p2) #
     ###################################################################
     my_C_range = [0.0:0.001:1.0;]
+    example_half_v = avg_speed(example_kc_half_jam, example_v_f, my_λ, example_kc_half_jam) .* 60
 
     # Test on corridor 1, p1 → p2
     # NOTE: multiplied everything by 60 for plotting??
-    my_speeds_test = avg_speed.(my_λ, example_v_f, my_a, my_C_range, example_kc_half_jam) .* 60
-    my_speeds_direct = avg_speed.(my_λ, example_v_f, my_a, sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
+    my_speeds_test = avg_speed(my_C_range, example_v_f, my_λ, example_kc_half_jam) .* 60
+    #avg_speed.(example_v_f, my_λ, my_C_range, example_kc_half_jam) .* 60
+    my_speeds_direct = avg_speed(sol[kc[1, 2, 1]], example_v_f, my_λ, example_kc_half_jam) .* 60
+    #avg_speed.(example_v_f, my_λ, sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
     #my_speeds_old_test = old_avg_speed.(my_C_range, example_kc_half_jam) .* 60
     #my_speeds_old_direct = old_avg_speed.(sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
-    plt4 = plot(my_C_range, my_speeds_test, label="speed-density relation (λ=1)", title="speed-density curve: c1, p1 → p2, λ: $my_λ", ylabel="avg speed", xlabel="density")
+    plt4 = plot(my_C_range, my_speeds_test, label="speed-density relation", title="speed-density curve: c1, p1 → p2", ylabel="avg speed", xlabel="density") # add back version
     #plt4 = plot!(plt4, my_C_range, my_speeds_old_test, label="old speed-density relation (λ=0)")
     plt4 = vline!(plt4, [example_kc_half_jam], label="my C_half")
-    plt4 = plot!(plt4, sol[kc[1, 2, 1]], my_speeds_direct, label="my speeds (directly calculated)", linewidth=3)
+    plt4 = scatter!(plt4, sol[kc[1, 2, 1]], my_speeds_direct, label="my speeds (directly calculated)", linewidth=3)
+    plt4 = hline!(plt4, [example_half_v], label="v at kc_half_jam: $(round(example_half_v; digits = 3))")
     #plt4 = plot!(plt4, sol[kc[1, 2, 1]], my_speeds_old_direct, label="my speeds OLD (directly calculated)", linewidth=3, xlims=(0, 10 * sol.prob.ps[kc_half_jam][1, 2, 1])) # Why do I have to put this all the way at the end?
     plt4 = xlims!(plt4, (0, 10 * sol.prob.ps[kc_half_jam][1, 2, 1]))
+
+    #println("is speed ever 0?\n", my_speeds_test)
 
     #################
     # Finalize plot #

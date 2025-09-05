@@ -55,11 +55,14 @@ display(kc_init)
 u0 = [kc => kc_init, kp => kp_init, γ => γ_init, u => u_init, v => v_init];
 
 println("Setting up parameters...")
-# Set parameters for population model
-my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
-kc_half_jam_denominator = 150
-my_kc_half_jam = (1 / kc_half_jam_denominator) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
-my_kc_half_jam[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 1e9 # set diagonal values to almost Inf
+
+# Parameters for calculating average space-mean speed, and therefore fluxes
+my_λ = 3
+v_f_base = 90 # free-flow velocity in kmh
+my_v_f = v_f_base / 60 * ones(Np, Np, Nc)  # Divided by 60 so that this is km per min
+my_v_f[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 0 # no movement in loops
+println("Free-flow velocities (my_v_f):")
+display(my_v_f)
 
 # Parameters for calculating demand (diurnal function)
 my_L = 0.6
@@ -67,19 +70,22 @@ my_r = 100
 my_x0 = 0.99
 my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
-# Parameters for calculating average space-mean speed, and therefore fluxes
-my_λ = 1
-my_a = 100
-v_f_base = 90 # free-flow velocity in kmh
-my_v_f = v_f_base / 60 * ones(Np, Np, Nc)  # Divided by 60 so that this is km per min
-my_v_f[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 0 # no movement in loops
-println("Free-flow velocities (my_v_f):")
-display(my_v_f)
+# Parameters for population model
+my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
+kc_half_jam_denominator = 15
+my_kc_half_jam = (1 / kc_half_jam_denominator) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
+my_kc_half_jam[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 1e9 # set diagonal values to almost Inf
 
-p = [v_f => my_v_f, a => my_a, λ => my_λ,
+# Make parameters list
+p = [v_f => my_v_f, λ => my_λ,
     r => my_r, x_0 => my_x0, L => my_L, shift => my_shift,
     α => my_α, kc_half_jam => my_kc_half_jam, period => my_period
 ];
+
+# Check params in original system
+println("Check parameters in original system...")
+og_params = parameters(ode)
+println(og_params)
 
 # Simplify structure and set up model
 println("Simplifying structure...") # because the system has vector unknowns, we need to simplify it
@@ -123,7 +129,7 @@ plt = traffic_plots.plot_results(sol)
 println("Saving plot...")
 demand_function = "periodic_logistic"
 prefix = "study_basic"
-suffix = ""
+suffix = "_new_avg_speed"
 savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * demand_function * "_Nc_$Nc" * "_kc_half_jam_denom_$kc_half_jam_denominator" * "_L_$my_L" * "_r_$my_r" * "_x0_$my_x0" * "_shift_$my_shift" * suffix * ".png")
 
 # Display plot
