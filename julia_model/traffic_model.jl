@@ -18,6 +18,10 @@ export v_f, λ, kc_crit
 @parameters r x_0 L shift
 export r, x_0, L, shift
 
+# Create parameters for road conditions
+@parameters ψ Le
+export ψ, Le
+
 # Create parameters for population model
 @parameters α[1:Np] kc_half_jam[1:Np, 1:Np, 1:Nc]
 export α, kc_half_jam
@@ -73,82 +77,6 @@ time_rescale = 1440 / period
 
 # Define speed-density curve -- lots of options to consider!
 
-# Greenshields (1935)
-greenshield(kc, v_f, kc_half_jam) = v_f .* (1 .- kc ./ (2 * kc_half_jam))
-
-# Drake (1967)
-drake(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / 2) .* (kc ./ (2 * kc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
-
-# Drake flexible
-drake_2(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (kc ./ (2 * kc_half_jam)) .^ 2)
-
-# Smulders (1990)
-d(v_f, a, k_crit, k_jam) = (v_f - a * k_crit) / ((1 / k_crit) - (1 / k_jam))
-smulders(kc, v_f, a, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f .- a .* kc : d(v_f, a, k_crit, 2 * kc_half_jam) .* (1 ./ kc .- 1 / (2 * kc_half_jam)) # assume kc > 0 and < k_jam always
-
-# Daganzo (1994)
-b(v_f, w, k_crit, k_jam) = (v_f + w * k_crit) / (w * k_jam)
-daganzo(kc, v_f, w, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * kc_half_jam) * w * 2 * kc_half_jam) ./ kc # assume kc > 0 and < k_jam always
-
-# Original version
-β(kc_half_jam) = 1 ./ (kc_half_jam .* 2)
-old_exp(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
-
-# Custom version (arctan function)
-η(kc, a, kc_half_jam) = (pi / 2 .- atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, asymptotically approaches y=0
-ϕ(kc, a, kc_half_jam) = η(kc, a, kc_half_jam) ./ η(0.0, a, kc_half_jam)        # rescale so y-range is (0,1)
-custom(kc, v_f, a, kc_half_jam) = v_f .* ϕ(kc, a, kc_half_jam)
-
-# Current (favorite) version
-# Calculate parameter b so that v(k_hj) = 1/2 v_f # need a better name for b
-calc_b(k_half_jam, λ) = k_half_jam .* (1 ./ log(2)) .^ (1 ./ λ)
-favorite(kc, v_f, λ, b) = v_f .* exp.(-1 .* (kc ./ b) .^ λ)
-
-#=
-# Newest custom version (arctan function)
-η(kc, a, kc_half_jam) = (atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, symmetric around y=0
-ϕ(kc, a, kc_half_jam) = η(kc, a, kc_half_jam) ./ (2 * η(0.0, a, kc_half_jam))       # rescale so y-range is (-0.5,0.5)
-custom(kc, v_f, a, kc_half_jam) = v_f .* (ϕ(kc, a, kc_half_jam) .+ 1 / 2)           # shift and rescale so y-range is (0, v_f)
-=#
-
-#=
-function avg_speed(kc, v_f, a, kc_half_jam, kc_crit, version) # ::String
-    if version == "greenshield"
-        return greenshield(kc, v_f, kc_half_jam)
-    elseif version == "drake"
-        return drake(kc, v_f, kc_half_jam)
-    elseif version == "smulders"
-        return smulders(kc, v_f, a, kc_crit, kc_half_jam)
-    elseif version == "daganzo"
-        return daganzo(kc, v_f, a, kc_crit, kc_half_jam) # a = w
-    elseif version == "arctan"
-        return custom(kc, v_f, a, kc_half_jam)
-    elseif version == "old"
-        return old_exp(kc, kc_half_jam)
-    else # Default to arctan function
-        return custom(kc, v_f, a, kc_half_jam)
-    end
-end
-=#
-
-#=
-if version == "arctan"
-    avg_speed(kc, v_f, a, kc_half_jam) = custom(kc, v_f, a, kc_half_jam)
-elseif version == "drake"
-    avg_speed(kc, v_f, a, kc_half_jam) = drake(kc, v_f, kc_half_jam)
-else
-    avg_speed(kc, v_f, a, kc_half_jam) = greenshield(kc, v_f, kc_half_jam)
-end
-=#
-#avg_speed(kc, v_f, a, kc_half_jam, λ) = λ == 0 ? custom(kc, v_f, a, kc_half_jam) : drake(kc, v_f, kc_half_jam)
-#felse(λ == 0.0, avg_speed(kc, v_f, a, kc_half_jam, λ)=custom(kc, v_f, a, kc_half_jam), avg_speed(kc, v_f, a, kc_half_jam, λ)=drake(kc, v_f, kc_half_jam))
-
-#export new_avg_speed
-# Desmos version for convenience
-# (v_f / ((pi / 2 - arctan(a * (0 - h))) / pi)) * (pi / 2 - arctan(a * (x - h))) / pi
-
-# Options! Choose your own adventure
-#avg_speed(kc, λ, v_f, a, kc_half_jam) = λ .* new_avg_speed(kc, v_f, a, kc_half_jam) + (1 - λ) .* old_avg_speed(kc, kc_half_jam)
 
 #avg_speed(kc, v_f, a, kc_half_jam) = drake_2(kc, v_f, a, kc_half_jam) #custom(kc, v_f, a, kc_half_jam) #drake(kc, v_f, a, kc_half_jam) .* (1 / a) # silly way to cheat parameter a
 avg_speed(kc, v_f, λ, kc_half_jam) = favorite(kc, v_f, λ, calc_b(kc_half_jam, λ))
@@ -215,3 +143,67 @@ end #end of module
 # Old / previous avg_speed functions #
 # Saving for posterity               #
 ######################################
+
+#=
+# Greenshields (1935)
+greenshield(kc, v_f, kc_half_jam) = v_f .* (1 .- kc ./ (2 * kc_half_jam))
+
+# Drake (1967)
+drake(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / 2) .* (kc ./ (2 * kc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
+
+# Drake flexible
+drake_2(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (kc ./ (2 * kc_half_jam)) .^ 2)
+
+# Smulders (1990)
+d(v_f, a, k_crit, k_jam) = (v_f - a * k_crit) / ((1 / k_crit) - (1 / k_jam))
+smulders(kc, v_f, a, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f .- a .* kc : d(v_f, a, k_crit, 2 * kc_half_jam) .* (1 ./ kc .- 1 / (2 * kc_half_jam)) # assume kc > 0 and < k_jam always
+
+# Daganzo (1994)
+b(v_f, w, k_crit, k_jam) = (v_f + w * k_crit) / (w * k_jam)
+daganzo(kc, v_f, w, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * kc_half_jam) * w * 2 * kc_half_jam) ./ kc # assume kc > 0 and < k_jam always
+
+# Original version
+β(kc_half_jam) = 1 ./ (kc_half_jam .* 2)
+old_exp(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
+
+# Custom version (arctan function)
+η(kc, a, kc_half_jam) = (pi / 2 .- atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, asymptotically approaches y=0
+ϕ(kc, a, kc_half_jam) = η(kc, a, kc_half_jam) ./ η(0.0, a, kc_half_jam)        # rescale so y-range is (0,1)
+custom(kc, v_f, a, kc_half_jam) = v_f .* ϕ(kc, a, kc_half_jam)
+
+# Current (favorite) version
+# Calculate parameter b so that v(k_hj) = 1/2 v_f # need a better name for b
+calc_b(k_half_jam, λ) = k_half_jam .* (1 ./ log(2)) .^ (1 ./ λ)
+favorite(kc, v_f, λ, b) = v_f .* exp.(-1 .* (kc ./ b) .^ λ)
+
+# Greenshields (1935)
+greenshield(kc, v_f, kc_half_jam) = v_f .* (1 .- kc ./ (2 * kc_half_jam))
+
+# Drake (1967)
+drake(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / 2) .* (kc ./ (2 * kc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
+
+# Drake flexible
+drake_2(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (kc ./ (2 * kc_half_jam)) .^ 2)
+
+# Smulders (1990)
+d(v_f, a, k_crit, k_jam) = (v_f - a * k_crit) / ((1 / k_crit) - (1 / k_jam))
+smulders(kc, v_f, a, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f .- a .* kc : d(v_f, a, k_crit, 2 * kc_half_jam) .* (1 ./ kc .- 1 / (2 * kc_half_jam)) # assume kc > 0 and < k_jam always
+
+# Daganzo (1994)
+b(v_f, w, k_crit, k_jam) = (v_f + w * k_crit) / (w * k_jam)
+daganzo(kc, v_f, w, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * kc_half_jam) * w * 2 * kc_half_jam) ./ kc # assume kc > 0 and < k_jam always
+
+# Original version
+β(kc_half_jam) = 1 ./ (kc_half_jam .* 2)
+old_exp(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
+
+# Custom version (arctan function)
+η(kc, a, kc_half_jam) = (pi / 2 .- atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, asymptotically approaches y=0
+ϕ(kc, a, kc_half_jam) = η(kc, a, kc_half_jam) ./ η(0.0, a, kc_half_jam)        # rescale so y-range is (0,1)
+custom(kc, v_f, a, kc_half_jam) = v_f .* ϕ(kc, a, kc_half_jam)
+
+# Current (favorite) version
+# Calculate parameter b so that v(k_hj) = 1/2 v_f # need a better name for b
+calc_b(k_half_jam, λ) = k_half_jam .* (1 ./ log(2)) .^ (1 ./ λ)
+favorite(kc, v_f, λ, b) = v_f .* exp.(-1 .* (kc ./ b) .^ λ)
+=#
