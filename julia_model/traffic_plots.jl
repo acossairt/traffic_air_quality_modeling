@@ -25,25 +25,29 @@ function plot_results(sol)
     my_r = sol.prob.ps[:r]                                    # subplot 3
     my_x_0 = sol.prob.ps[:x_0]                                # subplot 3
     my_shift = sol.prob.ps[:shift]                            # subplot 3
-    example_kc_half_jam = sol.prob.ps[:kc_half_jam][1, 2, 1]  # subplot 4
+    example_nc_half_jam = sol.prob.ps[:nc_half_jam][1, 2, 1]  # subplot 4
     example_v_f = sol.prob.ps[:v_f][1, 2, 1]                  # subplot 4
     my_λ = sol.prob.ps[:λ]                                    # subplot 4
+    my_ψ = sol.prob.ps[:ψ]
+    my_Le = sol.prob.ps[:Le]
     #my_version = sol.prob.ps[:version]                        # subplot 2
     my_shift = sol.prob.ps[:shift]                            # subplot 5
-    #my_kc_crit = sol.prob.ps[:kc_crit]
+    #my_nc_crit = sol.prob.ps[:nc_crit]
     #println("my_version", my_version)
+
+    println("my_ψ: ", my_ψ, "\nmy_Le: ", my_Le)
 
     # Define accessories for plots (colors, linestyles, and legend specs)
     my_colors = [:darkcyan, :chocolate2, :purple, :dodgerblue4, :orangered2]
     my_linestyles = [:dash, :dashdotdot, :dot]
-    legend_loc = Nc > 1 || Np > 2 ? :right : :topleft
+    legend_loc = NumCors > 1 || NumPatches > 2 ? :right : :topleft
     rush_hour_1_peak = my_shift + 360 # to define xlims for subplot 5
 
     # Set up subplots
     plt1 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, titlefontsize=14, xguidefontsize=14, yguidefontsize=14, ylabel="population density (k)", legend=legend_loc, legend_background_color=RGBA(1, 1, 1, 0.5))
     plt2 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="v (km/h)", legend=:right, legend_background_color=RGBA(1, 1, 1, 0.5))
     plt3 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", legend=:right, legend_background_color=RGBA(1, 1, 1, 0.5), palette=:lightrainbow)
-    plt4 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="population density (k)", ylabel="avg speeds (v)", xlims=(0, 4 * sol.prob.ps[kc_half_jam][1, 2, 1]))
+    plt4 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="population density (k)", ylabel="avg speeds (v)", xlims=(0, 4 * sol.prob.ps[nc_half_jam][1, 2, 1]))
     plt5 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="population density (k)", xlims=((rush_hour_1_peak - 180) / 60, (rush_hour_1_peak + 180) / 60))
     plt6 = plot(legendfontsize=10, xtickfontsize=12, ytickfontsize=12, xguidefontsize=14, yguidefontsize=14, xlabel="t", ylabel="population density (k)", xlims=((rush_hour_1_peak - 180) / 60, (rush_hour_1_peak + 180) / 60))
 
@@ -81,8 +85,8 @@ function plot_results(sol)
     ###########################################
     # Patch-specific plots (subplots 1 and 3) #
     ###########################################
-    for i in 1:Np
-        plt1 = plot!(plt1, sol.t ./ 60, sol[kp[i]], label="kp$i", linewidth=3, color=my_colors[i])
+    for i in 1:NumPatches
+        plt1 = plot!(plt1, sol.t ./ 60, sol[np[i]], label="np$i", linewidth=3, color=my_colors[i])
         plt3 = plot!(plt3, sol.t ./ 60, sol[γ[i]], label="γ$i", linewidth=3, linestyle=:dot, color=my_colors[i])
         plt5 = plot!(plt5, sol.t ./ 60, sol[γ[i]], label="γ$i", linewidth=3, linestyle=:dot, color=my_colors[i])
         plt6 = plot!(plt6, sol.t ./ 60, sol[γ[i]], label="γ$i", linewidth=3, linestyle=:dot, color=my_colors[i])
@@ -97,77 +101,82 @@ function plot_results(sol)
     total_pop_patches = zeros(length(sol.t))
 
     # Plot corridor-specific values (subplots 1 and 2)
-    for j in 1:Np # to patch j
-        my_colors1 = palette([my_colors[j], :snow2], Np * Nc + 2) # padding because I won't use the first or last colors in this palette
+    for j in 1:NumPatches # to patch j
+        my_colors1 = palette([my_colors[j], :snow2], NumPatches * NumCors + 2) # padding because I won't use the first or last colors in this palette
 
         # Update total population counts
-        total_pop_patches .+= sol[kp[j]]
-        total_pop .+= sol[kp[j]]
+        total_pop_patches .+= sol[np[j]]
+        total_pop .+= sol[np[j]]
 
-        for i in 1:Np # from patch i
+        for i in 1:NumPatches # from patch i
             if j != i # skip diagonals (non-existent "loop" corridors)
-                for k in 1:Nc # via corridor k
+                for k in 1:NumCors # via corridor k
                     this_color = my_colors1[i+k] # always skips the first (brightest) shade
 
                     # Extract parameter values assigned in this problem
-                    this_kc_half_jam = sol.prob.ps[:kc_half_jam][i, j, k] #kc_half_jam[i, j, k]
+                    this_nc_half_jam = sol.prob.ps[:nc_half_jam][i, j, k] #nc_half_jam[i, j, k]
                     this_v_f = sol.prob.ps[:v_f][i, j, k]
                     this_v_f_kmh = this_v_f * 60 # convert to kmh
                     this_λ = sol.prob.ps[:λ]
 
                     # Plot corridor population densities (subplot 1)
-                    plt1 = plot!(plt1, sol.t ./ 60, sol[kc[i, j, k]],
-                        label="kc$k, p$i→p$j", linewidth=3,
+                    plt1 = plot!(plt1, sol.t ./ 60, sol[nc[i, j, k]],
+                        label="nc$k, p$i→p$j", linewidth=3,
                         linestyle=my_linestyles[k], color=this_color)
 
                     # Same for subplot 5 (zoomed in)
-                    plt5 = plot!(plt5, sol.t ./ 60, sol[kc[i, j, k]],
-                        label="kc$k, p$i→p$j", linewidth=3,
+                    plt5 = plot!(plt5, sol.t ./ 60, sol[nc[i, j, k]],
+                        label="nc$k, p$i→p$j", linewidth=3,
                         linestyle=my_linestyles[k], color=this_color,
-                        xlims=((rush_hour_1_peak - 180) ./ 60, (rush_hour_1_peak + 180) ./ 60)) # Need to change the ylims later, in case of different kc_half_jams
+                        xlims=((rush_hour_1_peak - 180) ./ 60, (rush_hour_1_peak + 180) ./ 60)) # Need to change the ylims later, in case of different nc_half_jams
 
                     # Same for subplot 6 (zoomed WAY in)
-                    plt6 = plot!(plt6, sol.t ./ 60, sol[kc[i, j, k]],
-                        label="kc$k, p$i→p$j", linewidth=3,
+                    plt6 = plot!(plt6, sol.t ./ 60, sol[nc[i, j, k]],
+                        label="nc$k, p$i→p$j", linewidth=3,
                         linestyle=my_linestyles[k], color=this_color,
                         xlims=((rush_hour_1_peak - 180) ./ 60, (rush_hour_1_peak + 180) ./ 60),
-                        ylims=(0, 5 * this_kc_half_jam))
+                        ylims=(0, 5 * this_nc_half_jam))
 
                     # Plot jam densities for each corridor (subplot 1)
-                    plt1 = hline!(plt1, [this_kc_half_jam],
-                        label="kc_half_jam[$i,$j,$k]=$(round(this_kc_half_jam; digits = 3))", linewidth=1,
+                    plt1 = hline!(plt1, [this_nc_half_jam],
+                        label="nc_half_jam[$i,$j,$k]=$(round(this_nc_half_jam; digits = 3))", linewidth=1,
                         linestyle=my_linestyles[k], color=this_color)
 
                     # Same for subplot 5 (zoomed in)
-                    plt5 = hline!(plt5, [this_kc_half_jam],
-                        label="kc_half_jam[$i,$j,$k]=$(round(this_kc_half_jam; digits = 3))", linewidth=1,
+                    plt5 = hline!(plt5, [this_nc_half_jam],
+                        label="nc_half_jam[$i,$j,$k]=$(round(this_nc_half_jam; digits = 3))", linewidth=1,
                         linestyle=my_linestyles[k], color=this_color,
                         xlims=((rush_hour_1_peak - 180) / 60, (rush_hour_1_peak + 180) / 60))
 
                     # Same for subplot 6 (zoomed WAY in)
-                    plt6 = hline!(plt6, [this_kc_half_jam],
-                        label="kc_half_jam[$i,$j,$k]=$(round(this_kc_half_jam; digits = 3))", linewidth=1,
+                    plt6 = hline!(plt6, [this_nc_half_jam],
+                        label="nc_half_jam[$i,$j,$k]=$(round(this_nc_half_jam; digits = 3))", linewidth=1,
                         linestyle=my_linestyles[k], color=this_color,
                         xlims=((rush_hour_1_peak - 180) / 60, (rush_hour_1_peak + 180) / 60))
 
                     # Calculate average speeds... would prefer to do this outside the loop...
                     # NOTE: multiplied by 60 for plotting purposes??
-                    my_C_speeds = avg_speed(sol[kc[i, j, k]], this_v_f, this_λ, this_kc_half_jam) .* 60
+                    #practice_calc_b(nc_half_jam, λ) = (nc_half_jam) .* (1 ./ log(2)) .^ (1 ./ λ)
+                    #practice_avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* (nc ./ practice_calc_b(nc_half_jam, λ)) .^ λ)
 
+                    my_C_speeds = avg_speed(sol[nc[i, j, k]], my_ψ, my_Le, this_v_f, this_λ, this_nc_half_jam) .* 60
+
+                    #println("Checking C speeds")
+                    #println(my_C_speeds)
                     # Plot average vehicle speeds in each corridor (subplot 2)
                     plt2 = plot!(plt2, sol.t ./ 60, my_C_speeds,
                         label="u: c$k, p$i → p$j",
                         linewidth=3, linestyle=my_linestyles[k], color=this_color)
 
                     # Update total population count
-                    total_pop .+= sol[kc[i, j, k]] # If this dips below 1, you are probably losing population to the loops
+                    total_pop .+= sol[nc[i, j, k]] # If this dips below 1, you are probably losing population to the loops
                 end
             end
         end
     end
 
     # Set subplot titles
-    plt1 = title!(plt1, "Daily commute: $Np patches, $Nc $(Nc > 1 ? "corridors" : "corridor")")
+    plt1 = title!(plt1, "Daily commute: $NumPatches patches, $NumCors $(NumCors > 1 ? "corridors" : "corridor")")
     plt2 = title!(plt2, "average speeds (assume v_f=$example_v_f kmh)")
     plt5 = title!(plt5, "First rush hour (zoomed in) with demand")
     plt6 = title!(plt6, "First rush hour (zoomed WAY in)")
@@ -179,23 +188,23 @@ function plot_results(sol)
     # Create subplot 4, speed-density curve (example for c1: p1 → p2) #
     ###################################################################
     my_C_range = [0.0:0.001:1.0;]
-    example_half_v = avg_speed(example_kc_half_jam, example_v_f, my_λ, example_kc_half_jam) .* 60
+    example_half_v = avg_speed(example_nc_half_jam, my_ψ, my_Le, example_v_f, my_λ, example_nc_half_jam) .* 60
 
     # Test on corridor 1, p1 → p2
     # NOTE: multiplied everything by 60 for plotting??
-    my_speeds_test = avg_speed(my_C_range, example_v_f, my_λ, example_kc_half_jam) .* 60
-    #avg_speed.(example_v_f, my_λ, my_C_range, example_kc_half_jam) .* 60
-    my_speeds_direct = avg_speed(sol[kc[1, 2, 1]], example_v_f, my_λ, example_kc_half_jam) .* 60
-    #avg_speed.(example_v_f, my_λ, sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
-    #my_speeds_old_test = old_avg_speed.(my_C_range, example_kc_half_jam) .* 60
-    #my_speeds_old_direct = old_avg_speed.(sol[kc[1, 2, 1]], example_kc_half_jam) .* 60
+    my_speeds_test = avg_speed(my_C_range, my_ψ, my_Le, example_v_f, my_λ, example_nc_half_jam) .* 60
+    #avg_speed.(example_v_f, my_λ, my_C_range, example_nc_half_jam) .* 60
+    my_speeds_direct = avg_speed(sol[nc[1, 2, 1]], my_ψ, my_Le, example_v_f, my_λ, example_nc_half_jam) .* 60
+    #avg_speed.(example_v_f, my_λ, sol[nc[1, 2, 1]], example_nc_half_jam) .* 60
+    #my_speeds_old_test = old_avg_speed.(my_C_range, example_nc_half_jam) .* 60
+    #my_speeds_old_direct = old_avg_speed.(sol[nc[1, 2, 1]], example_nc_half_jam) .* 60
     plt4 = plot(my_C_range, my_speeds_test, label="speed-density relation", title="speed-density curve: c1, p1 → p2", ylabel="avg speed", xlabel="density") # add back version
     #plt4 = plot!(plt4, my_C_range, my_speeds_old_test, label="old speed-density relation (λ=0)")
-    plt4 = vline!(plt4, [example_kc_half_jam], label="my C_half")
-    plt4 = scatter!(plt4, sol[kc[1, 2, 1]], my_speeds_direct, label="my speeds (directly calculated)", linewidth=3)
-    plt4 = hline!(plt4, [example_half_v], label="v at kc_half_jam: $(round(example_half_v; digits = 3))")
-    #plt4 = plot!(plt4, sol[kc[1, 2, 1]], my_speeds_old_direct, label="my speeds OLD (directly calculated)", linewidth=3, xlims=(0, 10 * sol.prob.ps[kc_half_jam][1, 2, 1])) # Why do I have to put this all the way at the end?
-    plt4 = xlims!(plt4, (0, 10 * sol.prob.ps[kc_half_jam][1, 2, 1]))
+    plt4 = vline!(plt4, [example_nc_half_jam], label="my C_half")
+    plt4 = scatter!(plt4, sol[nc[1, 2, 1]], my_speeds_direct, label="my speeds (directly calculated)", linewidth=3)
+    plt4 = hline!(plt4, [example_half_v], label="v at nc_half_jam: $(round(example_half_v; digits = 3))")
+    #plt4 = plot!(plt4, sol[nc[1, 2, 1]], my_speeds_old_direct, label="my speeds OLD (directly calculated)", linewidth=3, xlims=(0, 10 * sol.prob.ps[nc_half_jam][1, 2, 1])) # Why do I have to put this all the way at the end?
+    plt4 = xlims!(plt4, (0, 10 * sol.prob.ps[nc_half_jam][1, 2, 1]))
 
     #println("is speed ever 0?\n", my_speeds_test)
 

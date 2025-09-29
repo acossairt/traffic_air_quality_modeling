@@ -28,11 +28,11 @@ ode = traffic_model.construct_ode_system() # Why does this get called before eve
 
 # ? Do I actually need to do this in hard code?
 # Set number of patches and corridors
-Np = 2
-Nc = 1
+NumPatches = 2
+NumCors = 1
 
-@printf "Number of patches: %d\n" Np
-@printf "Number of corridors: %d\n" Nc
+@printf "Number of patches: %d\n" NumPatches
+@printf "Number of corridors: %d\n" NumCors
 
 # Set timescale
 my_period = 1440         # 24 hours, in minutes
@@ -41,26 +41,28 @@ scale = 1440 / my_period # if using a period other than 1440, this will rescale 
 tspan = (0.0, t_end);    #time span in minutes.
 
 # Set initial conditions
-kp_init = [1.0; 0.0]
-kc_init = zeros(Np, Np, Nc)
+np_init = [1.0; 0.0]
+nc_init = zeros(NumPatches, NumPatches, NumCors)
 u_init = 1
 v_init = 0
 γ_init = [1.0; 0.0]
 
-println("Initial patch densities (kp_init):")
-display(kp_init)
-println("Initial corridor densities (kc_init):")
-display(kc_init)
+println("Initial patch densities (np_init):")
+display(np_init)
+println("Initial corridor densities (nc_init):")
+display(nc_init)
 
-u0 = [kc => kc_init, kp => kp_init, γ => γ_init, u => u_init, v => v_init];
+u0 = [nc => nc_init, np => np_init, γ => γ_init, u => u_init, v => v_init];
 
 println("Setting up parameters...")
 
 # Parameters for calculating average space-mean speed, and therefore fluxes
 my_λ = 3
+my_ψ = 200
+my_Le = 1
 v_f_base = 90 # free-flow velocity in kmh
-my_v_f = v_f_base / 60 * ones(Np, Np, Nc)  # Divided by 60 so that this is km per min
-my_v_f[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 0 # no movement in loops
+my_v_f = v_f_base / 60 * ones(NumPatches, NumPatches, NumCors)  # Divided by 60 so that this is km per min
+my_v_f[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 0 # no movement in loops
 println("Free-flow velocities (my_v_f):")
 display(my_v_f)
 
@@ -72,14 +74,14 @@ my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
 # Parameters for population model
 my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
-kc_half_jam_denominator = 15
-my_kc_half_jam = (1 / kc_half_jam_denominator) / 2 * ones(Np, Np, Nc)  # 1/2 jam density for each corridor
-my_kc_half_jam[[CartesianIndex(i, i, k) for i in 1:Np, k in 1:Nc]] .= 1e9 # set diagonal values to almost Inf
+nc_half_jam_denominator = 15
+my_nc_half_jam = (1 / nc_half_jam_denominator) / 2 * ones(NumPatches, NumPatches, NumCors)  # 1/2 jam density for each corridor
+my_nc_half_jam[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 1e9 # set diagonal values to almost Inf
 
 # Make parameters list
-p = [v_f => my_v_f, λ => my_λ,
+p = [ψ => my_ψ, Le => my_Le, v_f => my_v_f, λ => my_λ,
     r => my_r, x_0 => my_x0, L => my_L, shift => my_shift,
-    α => my_α, kc_half_jam => my_kc_half_jam, period => my_period
+    α => my_α, nc_half_jam => my_nc_half_jam, period => my_period
 ];
 
 # Check params in original system
@@ -130,7 +132,7 @@ println("Saving plot...")
 demand_function = "periodic_logistic"
 prefix = "study_basic"
 suffix = "_new_avg_speed"
-savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * demand_function * "_Nc_$Nc" * "_kc_half_jam_denom_$kc_half_jam_denominator" * "_L_$my_L" * "_r_$my_r" * "_x0_$my_x0" * "_shift_$my_shift" * suffix * ".png")
+savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * demand_function * "_NumCors_$NumCors" * "_nc_half_jam_denom_$nc_half_jam_denominator" * "_L_$my_L" * "_r_$my_r" * "_x0_$my_x0" * "_shift_$my_shift" * suffix * ".png")
 
 # Display plot
 println("Displaying plot...")

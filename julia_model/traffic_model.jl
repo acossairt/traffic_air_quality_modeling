@@ -6,25 +6,25 @@ using Interpolations
 using IfElse
 
 # Hard code for now
-Np = 2
-Nc = 1
-export Np, Nc
+NumPatches = 2
+NumCors = 1
+export NumPatches, NumCors
 
 # Create parameters for speed-density curve
-@parameters v_f[1:Np, 1:Np, 1:Nc] λ kc_crit = 0.5
-export v_f, λ, kc_crit
+@parameters v_f[1:NumPatches, 1:NumPatches, 1:NumCors] λ
+export v_f, λ
 
 # Create parameters for "demand-to-leave" function
 @parameters r x_0 L shift
 export r, x_0, L, shift
 
-# Create parameters for road conditions
+# Create parameters for road conditions and patch area
 @parameters ψ Le
 export ψ, Le
 
 # Create parameters for population model
-@parameters α[1:Np] kc_half_jam[1:Np, 1:Np, 1:Nc]
-export α, kc_half_jam
+@parameters α[1:NumPatches] nc_half_jam[1:NumPatches, 1:NumPatches, 1:NumCors]
+export α, nc_half_jam
 
 # Create parameters for internal "clock" model
 @parameters period
@@ -36,8 +36,8 @@ export period
 export exit_on, entry_on
 
 # Create variables for population model with travel demand
-@variables kp(t)[1:Np] kc(t)[1:Np, 1:Np, 1:Nc] γ(t)[1:Np]
-export kp, kc, γ
+@variables np(t)[1:NumPatches] nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors] γ(t)[1:NumPatches]
+export np, nc, γ
 
 # Create variables for internal "clock" model
 @variables u(t) v(t)
@@ -75,11 +75,10 @@ Rescale time in terms of a day that is 1440 minutes
 =#
 time_rescale = 1440 / period
 
-# Define speed-density curve -- lots of options to consider!
-
-
-#avg_speed(kc, v_f, a, kc_half_jam) = drake_2(kc, v_f, a, kc_half_jam) #custom(kc, v_f, a, kc_half_jam) #drake(kc, v_f, a, kc_half_jam) .* (1 / a) # silly way to cheat parameter a
-avg_speed(kc, v_f, λ, kc_half_jam) = favorite(kc, v_f, λ, calc_b(kc_half_jam, λ))
+# Define speed-density curve -- lots of options to consider! See bottom of file
+calc_b(nc_half_jam, λ) = (nc_half_jam ./ (ψ .* Le)) .* (1 ./ log(2)) .^ (1 ./ λ)
+avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc ./ (ψ * Le)) ./ calc_b(nc_half_jam, λ)) .^ λ)
+#avg_speed(nc, v_f, λ, nc_half_jam) = favorite(nc, v_f, λ, calc_b(nc_half_jam, λ))
 export avg_speed
 
 #=
@@ -90,25 +89,28 @@ Define the corridor flux matrices:
 =#
 
 println("define flux functions...")
-EntryFlux(kp, kc, γ, α, kc_half_jam, v_f, λ, entry_on) = avg_speed(kc, v_f, λ, kc_half_jam) .* kp .* γ .* time_rescale .* entry_on
-ExitFlux(kc, kc_half_jam, v_f, λ, exit_on) = avg_speed(kc, v_f, λ, kc_half_jam) .* kc .* time_rescale .* exit_on
+# eventually need to change γ .* np to some function β(N_D) (defined in my notebook)
+EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on) = ψ * avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) .* γ .* np .* time_rescale .* entry_on
+ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on) = (nc ./ Le) .* avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) .* time_rescale .* exit_on
+#EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on) = (avg_speed(nc, v_f, λ, nc_half_jam) / Le) .* γ .* time_rescale .* entry_on
+#ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on) = (avg_speed(nc, v_f, λ, nc_half_jam) .* nc / Le) .* time_rescale .* exit_on
 
 #=
 Define equations for model:
     Notice there are only two equations in the population model, regardless of 
-    Np and Nc. The dynamical clock model has 3 or more equations (for u, v, and γ)
-    Question: does it matter if u, v, and γ are evaluated before or after kp and kc?
+    NumPatches and NumCors. The dynamical clock model has 3 or more equations (for u, v, and γ)
+    Question: does it matter if u, v, and γ are evaluated before or after np and nc?
     Notice: we only used "collect()" in the equation for D.(c).
     For D.(p), we summed over the columns of the EntryFlux matrix and over the columns 
-    of the ExitFlux matrix, then took their difference. If you don't do this (summing),
+    of the ExitFlux matrix, then took their differeNumCorse. If you don't do this (summing),
     you will get an error because you will be attempting to save an object of shape 
-    (2,2,1) into an object of shape (2,). (Assuming Np=2)
+    (2,2,1) into an object of shape (2,). (Assuming NumPatches=2)
 =#
 
 println("define eqs...")
 eqs = [
-    D.(kp) ~ [sum(ExitFlux(kc, kc_half_jam, v_f, λ, exit_on)[:, i, :]) for i in 1:Np] .- [sum(EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ, entry_on)[i, :, :]) for i in 1:Np],
-    D.(kc) ~ collect(-ExitFlux(kc, kc_half_jam, v_f, λ, exit_on) + EntryFlux(kp, kc, γ, α[1], kc_half_jam, v_f, λ, entry_on)),
+    D.(np) ~ [sum(ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on)[:, i, :]) for i in 1:NumPatches] .- [sum(EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on)[i, :, :]) for i in 1:NumPatches],
+    D.(nc) ~ collect(-ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on) + EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on)),
     D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
     D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
     γ_eqs...   # <-- include the triple dots to splice the equations into the list
@@ -146,64 +148,64 @@ end #end of module
 
 #=
 # Greenshields (1935)
-greenshield(kc, v_f, kc_half_jam) = v_f .* (1 .- kc ./ (2 * kc_half_jam))
+greenshield(nc, v_f, nc_half_jam) = v_f .* (1 .- nc ./ (2 * nc_half_jam))
 
 # Drake (1967)
-drake(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / 2) .* (kc ./ (2 * kc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
+drake(nc, v_f, a, nc_half_jam) = v_f .* exp.((-1 / 2) .* (nc ./ (2 * nc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
 
 # Drake flexible
-drake_2(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (kc ./ (2 * kc_half_jam)) .^ 2)
+drake_2(nc, v_f, a, nc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (nc ./ (2 * nc_half_jam)) .^ 2)
 
 # Smulders (1990)
 d(v_f, a, k_crit, k_jam) = (v_f - a * k_crit) / ((1 / k_crit) - (1 / k_jam))
-smulders(kc, v_f, a, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f .- a .* kc : d(v_f, a, k_crit, 2 * kc_half_jam) .* (1 ./ kc .- 1 / (2 * kc_half_jam)) # assume kc > 0 and < k_jam always
+smulders(nc, v_f, a, nc_crit, nc_half_jam) = nc ≤ nc_crit ? v_f .- a .* nc : d(v_f, a, k_crit, 2 * nc_half_jam) .* (1 ./ nc .- 1 / (2 * nc_half_jam)) # assume nc > 0 and < k_jam always
 
 # Daganzo (1994)
 b(v_f, w, k_crit, k_jam) = (v_f + w * k_crit) / (w * k_jam)
-daganzo(kc, v_f, w, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * kc_half_jam) * w * 2 * kc_half_jam) ./ kc # assume kc > 0 and < k_jam always
+daganzo(nc, v_f, w, nc_crit, nc_half_jam) = nc ≤ nc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * nc_half_jam) * w * 2 * nc_half_jam) ./ nc # assume nc > 0 and < k_jam always
 
 # Original version
-β(kc_half_jam) = 1 ./ (kc_half_jam .* 2)
-old_exp(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
+β(nc_half_jam) = 1 ./ (nc_half_jam .* 2)
+old_exp(nc, nc_half_jam) = exp.(-β.(nc_half_jam) .* nc)
 
 # Custom version (arctan function)
-η(kc, a, kc_half_jam) = (pi / 2 .- atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, asymptotically approaches y=0
-ϕ(kc, a, kc_half_jam) = η(kc, a, kc_half_jam) ./ η(0.0, a, kc_half_jam)        # rescale so y-range is (0,1)
-custom(kc, v_f, a, kc_half_jam) = v_f .* ϕ(kc, a, kc_half_jam)
+η(nc, a, nc_half_jam) = (pi / 2 .- atan.(a .* (nc .- nc_half_jam))) ./ pi # arctan function with inflection point at nc_half, asymptotically approaches y=0
+ϕ(nc, a, nc_half_jam) = η(nc, a, nc_half_jam) ./ η(0.0, a, nc_half_jam)        # rescale so y-range is (0,1)
+custom(nc, v_f, a, nc_half_jam) = v_f .* ϕ(nc, a, nc_half_jam)
 
 # Current (favorite) version
 # Calculate parameter b so that v(k_hj) = 1/2 v_f # need a better name for b
 calc_b(k_half_jam, λ) = k_half_jam .* (1 ./ log(2)) .^ (1 ./ λ)
-favorite(kc, v_f, λ, b) = v_f .* exp.(-1 .* (kc ./ b) .^ λ)
+favorite(nc, v_f, λ, b) = v_f .* exp.(-1 .* (nc ./ b) .^ λ)
 
 # Greenshields (1935)
-greenshield(kc, v_f, kc_half_jam) = v_f .* (1 .- kc ./ (2 * kc_half_jam))
+greenshield(nc, v_f, nc_half_jam) = v_f .* (1 .- nc ./ (2 * nc_half_jam))
 
 # Drake (1967)
-drake(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / 2) .* (kc ./ (2 * kc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
+drake(nc, v_f, a, nc_half_jam) = v_f .* exp.((-1 / 2) .* (nc ./ (2 * nc_half_jam)) .^ 2) .* a # silly way to cheat parameter a
 
 # Drake flexible
-drake_2(kc, v_f, a, kc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (kc ./ (2 * kc_half_jam)) .^ 2)
+drake_2(nc, v_f, a, nc_half_jam) = v_f .* exp.((-1 / (2 * a)) .* (nc ./ (2 * nc_half_jam)) .^ 2)
 
 # Smulders (1990)
 d(v_f, a, k_crit, k_jam) = (v_f - a * k_crit) / ((1 / k_crit) - (1 / k_jam))
-smulders(kc, v_f, a, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f .- a .* kc : d(v_f, a, k_crit, 2 * kc_half_jam) .* (1 ./ kc .- 1 / (2 * kc_half_jam)) # assume kc > 0 and < k_jam always
+smulders(nc, v_f, a, nc_crit, nc_half_jam) = nc ≤ nc_crit ? v_f .- a .* nc : d(v_f, a, k_crit, 2 * nc_half_jam) .* (1 ./ nc .- 1 / (2 * nc_half_jam)) # assume nc > 0 and < k_jam always
 
 # Daganzo (1994)
 b(v_f, w, k_crit, k_jam) = (v_f + w * k_crit) / (w * k_jam)
-daganzo(kc, v_f, w, kc_crit, kc_half_jam) = kc ≤ kc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * kc_half_jam) * w * 2 * kc_half_jam) ./ kc # assume kc > 0 and < k_jam always
+daganzo(nc, v_f, w, nc_crit, nc_half_jam) = nc ≤ nc_crit ? v_f : -w + (b(v_f, w, k_crit, 2 * nc_half_jam) * w * 2 * nc_half_jam) ./ nc # assume nc > 0 and < k_jam always
 
 # Original version
-β(kc_half_jam) = 1 ./ (kc_half_jam .* 2)
-old_exp(kc, kc_half_jam) = exp.(-β.(kc_half_jam) .* kc)
+β(nc_half_jam) = 1 ./ (nc_half_jam .* 2)
+old_exp(nc, nc_half_jam) = exp.(-β.(nc_half_jam) .* nc)
 
 # Custom version (arctan function)
-η(kc, a, kc_half_jam) = (pi / 2 .- atan.(a .* (kc .- kc_half_jam))) ./ pi # arctan function with inflection point at kc_half, asymptotically approaches y=0
-ϕ(kc, a, kc_half_jam) = η(kc, a, kc_half_jam) ./ η(0.0, a, kc_half_jam)        # rescale so y-range is (0,1)
-custom(kc, v_f, a, kc_half_jam) = v_f .* ϕ(kc, a, kc_half_jam)
+η(nc, a, nc_half_jam) = (pi / 2 .- atan.(a .* (nc .- nc_half_jam))) ./ pi # arctan function with inflection point at nc_half, asymptotically approaches y=0
+ϕ(nc, a, nc_half_jam) = η(nc, a, nc_half_jam) ./ η(0.0, a, nc_half_jam)        # rescale so y-range is (0,1)
+custom(nc, v_f, a, nc_half_jam) = v_f .* ϕ(nc, a, nc_half_jam)
 
 # Current (favorite) version
 # Calculate parameter b so that v(k_hj) = 1/2 v_f # need a better name for b
 calc_b(k_half_jam, λ) = k_half_jam .* (1 ./ log(2)) .^ (1 ./ λ)
-favorite(kc, v_f, λ, b) = v_f .* exp.(-1 .* (kc ./ b) .^ λ)
+favorite(nc, v_f, λ, b) = v_f .* exp.(-1 .* (nc ./ b) .^ λ)
 =#
