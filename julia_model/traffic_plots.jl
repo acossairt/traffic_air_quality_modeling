@@ -161,8 +161,8 @@ function plot_results(sol)
 
                     my_C_speeds = avg_speed(sol[nc[i, j, k]], my_ψ, my_Le, this_v_f, this_λ, this_nc_half_jam) .* 60
 
-                    #println("Checking C speeds")
-                    #println(my_C_speeds)
+                    println("Checking C speeds")
+                    println(my_C_speeds)
                     # Plot average vehicle speeds in each corridor (subplot 2)
                     plt2 = plot!(plt2, sol.t ./ 60, my_C_speeds,
                         label="u: c$k, p$i → p$j",

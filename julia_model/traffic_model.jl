@@ -76,8 +76,10 @@ Rescale time in terms of a day that is 1440 minutes
 time_rescale = 1440 / period
 
 # Define speed-density curve -- lots of options to consider! See bottom of file
-calc_b(nc_half_jam, λ) = (nc_half_jam ./ (ψ .* Le)) .* (1 ./ log(2)) .^ (1 ./ λ)
-avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc ./ (ψ * Le)) ./ calc_b(nc_half_jam, λ)) .^ λ)
+real_calc_b(nc_half_jam, λ) = (nc_half_jam ./ (ψ .* Le)) .* (1 ./ log(2)) .^ (1 ./ λ)
+real_avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc ./ (ψ * Le)) ./ calc_b(nc_half_jam, λ)) .^ λ)
+calc_b(nc_half_jam, λ) = (nc_half_jam) .* (1 ./ log(2)) .^ (1 ./ λ)
+avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc) ./ calc_b(nc_half_jam, λ)) .^ λ)
 #avg_speed(nc, v_f, λ, nc_half_jam) = favorite(nc, v_f, λ, calc_b(nc_half_jam, λ))
 export avg_speed
 

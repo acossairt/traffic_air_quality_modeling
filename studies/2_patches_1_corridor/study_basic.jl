@@ -79,8 +79,9 @@ my_nc_half_jam = (1 / nc_half_jam_denominator) / 2 * ones(NumPatches, NumPatches
 my_nc_half_jam[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 1e9 # set diagonal values to almost Inf
 
 # Make parameters list
-p = [ψ => my_ψ, Le => my_Le, v_f => my_v_f, λ => my_λ,
+p = [v_f => my_v_f, λ => my_λ,
     r => my_r, x_0 => my_x0, L => my_L, shift => my_shift,
+    ψ => my_ψ, Le => my_Le,
     α => my_α, nc_half_jam => my_nc_half_jam, period => my_period
 ];
 
@@ -137,3 +138,5 @@ savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * d
 # Display plot
 println("Displaying plot...")
 display(plt)
+
+# TODO be awesome
