@@ -1,0 +1,92 @@
+#simple two patch test model for latest functions and debugging
+
+
+#demand function. This is the logistic equation, which is smooth, continuous, and well-behaved If you pass a periodic function (like v) as the argument `x`, then f(x) will look  like a (well-behaved)  wave, peaking at the same place as where the periodic function peaks.#
+
+f(x,r,xo,m) = m/(1 + exp(-r * (x - xo)))
+
+#where x is the diurnal function v, r is the sharpness of the onset of demand, x₀ determines the time duration of the travel interval and m determines the maximum percentage of the population in the patch that wants to travel during the travel period.
+
+#create diurnal pattern for a day:
+
+par period=24
+
+#one day in minutes
+
+u' = u * (1 - u^2 - v^2) - (2 * pi/period) * v
+v' = v * (1 - u^2 - v^2) + (2 * pi/period)*u
+
+#set initial conditions to make v the sine function
+
+init u=1,v=0
+
+#velocity-density relationship from the literature
+
+g(x,a,b,c) = a*exp(-log(2)*(x/b)**c)
+
+#where a=free flow velocity, b is the half-jam density (or number), and c is the sharpness of the jam threshold, x is density (or number).
+
+#then entry flux = supply*demand (a sort of mass action representation - cars line up to get on the escalator (f) and they are removed at rate v*escalator (road) geometry psi (lanes)*L(road length). If Nc is the number of cars in the corridor, kc is their concentration given by kc= Nc/psi*L where psi is the number of cars that can be packed onto 1 km of highway - i.e. one lane holds 200 cars bumper to bumper at at which time v=0. kc ranges between 0 and 1.  But we can call v with numbers rather than densities (road geometry cancels).
+
+#so total available spaces (bucket) per km, for a highway is psi. and total available per hour is psi*v.  Total actually filed depnds on demand - i.e. "cars per space".  If the demand is less than the supply, then cars per space = Nd/psi = Np*f/psi.  If Nd > psi , all spaces are full, so cars per space remains constant to the max psi V.  So a simple ramp function captures this. But I want to use a C1 (differentiable) fucntion. 
+
+#basic ramp function - this is fine to use this.
+#beta(x,a) = if(x <= a)then(x)else(a).
+
+#But to be rigorous and reduce the chances of numerical issues, ust adjust so function
+#tracks x up to point b then switches to an exponential that smoothly approaches
+#a in the limit. Just for numerical issues.  Beta can be understood as the proportion
+#of available buckets that are full. Once Nd>psi, that goes to 1. That is, you can't put more than one care in a "space" or bucket.
+
+beta(x,a,b) = if(x<= b)then(x)else(a - (a-b)*exp(-(x-b)/(a-b)))
+
+par psi=100,L=30,dshrp=200,dur=0.97,trprp=0.6
+par Nhj = 0.3,vff=120,vshrp=1,demhf=0.5
+par P1=10000
+par P2 = 5000
+
+#par Np=100000,Nc=0
+
+#demand going from 12. Utilization rate g()*clock on off (diurnal), f().
+#notice the call variable.
+
+par t_shift=0
+
+vs = v*cos(t_shift) - u*sin(t_shift)
+
+Nd12 = g(Ntl12/(trprp*P1),1,demhf,4)*f(vs,dshrp,dur,1)
+
+#average velocity on the corridor
+Va=g(Nc/(psi*L),vff,Nhj,vshrp)
+
+# entry flux = demand (really a non-dimensional utilization rate*max capacity, g().
+# onff = onramp free flow entry rate, cars per hour. onhj - onramp half jam.
+
+par onff=5000, onhj=0.5,osharp=1
+
+EnFlx = g(Nc/(psi*L),onff,onhj,osharp)*Nd12
+
+ExFlx = Nc*Va/L
+
+#finally the differential equations 
+
+Ntl12' = EnFlx
+Nc' = EnFlx - ExFlx
+Nta12' = ExFlx
+
+init Ntl12=0,Nc=0,Nta12=0
+
+
+#This function is called with Nd and psi*v  Then exit flux is given by
+
+aux dmd = Nd12
+aux entry = EnFlx
+aux exit = ExFlx
+aux velcty = Va
+aux logit = f(v,dshrp,dur,1)
+aux Np1 = P1 - Ntl12
+aux Np2 = P2 + Nta12
+aux vshifted = vs
+
+@ total=24, bounds=1000000
+
