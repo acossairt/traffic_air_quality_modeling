@@ -41,7 +41,7 @@ scale = 1440 / my_period # if using a period other than 1440, this will rescale 
 tspan = (0.0, t_end);    #time span in minutes.
 
 # Set initial conditions
-np_init = [1.0; 0.0]
+np_init = [150000.0; 0.0]
 nc_init = zeros(NumPatches, NumPatches, NumCors)
 u_init = 1
 v_init = 0
@@ -57,10 +57,10 @@ u0 = [nc => nc_init, np => np_init, γ => γ_init, u => u_init, v => v_init];
 println("Setting up parameters...")
 
 # Parameters for calculating average space-mean speed, and therefore fluxes
-my_λ = 3
-my_ψ = 200
-my_Le = 1
-v_f_base = 90 # free-flow velocity in kmh
+my_λ = 2
+my_ψ = 24.85
+my_Le = 123.92
+v_f_base = 117.4 # free-flow velocity in kmh
 my_v_f = v_f_base / 60 * ones(NumPatches, NumPatches, NumCors)  # Divided by 60 so that this is km per min
 my_v_f[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 0 # no movement in loops
 println("Free-flow velocities (my_v_f):")
@@ -73,22 +73,33 @@ my_x0 = 0.99
 my_shift = 0 * 60    # in units of minutes, set to 0 for no shift
 
 # Parameters for population model
-my_α = [1]   # Tolerance for congestion (for now, assume same for patch 1 and patch 2)
-nc_half_jam_denominator = 15
-my_nc_half_jam = (1 / nc_half_jam_denominator) / 2 * ones(NumPatches, NumPatches, NumCors)  # 1/2 jam density for each corridor
+nc_half_jam_base = 69715
+my_nc_half_jam = nc_half_jam_base * ones(NumPatches, NumPatches, NumCors)
 my_nc_half_jam[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 1e9 # set diagonal values to almost Inf
+
+# Parameters for experimenting with flux functions
+my_entry_on = 1
+my_exit_on = 1
 
 # Make parameters list
 p = [v_f => my_v_f, λ => my_λ,
     r => my_r, x_0 => my_x0, L => my_L, shift => my_shift,
     ψ => my_ψ, Le => my_Le,
-    α => my_α, nc_half_jam => my_nc_half_jam, period => my_period
+    nc_half_jam => my_nc_half_jam, period => my_period,
+    exit_on => my_exit_on, entry_on => my_entry_on,
 ];
 
 # Check params in original system
 println("Check parameters in original system...")
 og_params = parameters(ode)
 println(og_params)
+
+# Test
+#play1 = traffic_model.EntryFlux(0, 150000, 0.1, 500, 90 / 60, 3, 100, 200, 1)
+#println("Practice 1: ", play1)
+#play2 = traffic_model.EntryFlux(nc_init, np_init, γ_init, my_nc_half_jam, my_v_f, my_λ, my_Le, my_ψ, my_exit_on)
+#println("Practice 2: ", play2)
+#println(play2[1, 2, 1])
 
 # Simplify structure and set up model
 println("Simplifying structure...") # because the system has vector unknowns, we need to simplify it
@@ -107,6 +118,7 @@ end
 sol = construct_solve(prob)
 println("Runs done!")
 
+#println(sol[ϕ_in[1, 2, 1]])
 #=
 Calculate average speeds
     Currently have to create an object `long_kc_half_jam` so that the broadcasting works. 
@@ -125,7 +137,16 @@ println("Speeds")
 display(avg_v)
 =#
 
+# Test some functions
+#println("Testing calc_avg_speed()")
+#example_nc_half_jam = sol.prob.ps[:nc_half_jam][1, 2, 1]
+#avg = traffic_plots.avg_speed(example_nc_half_jam)
+#println("avg for example_nc_half_jam:", avg)
+
+
 println("Plotting results...")
+#plt = traffic_plots.plot_entry_exit(sol)
+
 plt = traffic_plots.plot_results(sol)
 
 # Save plot
@@ -133,10 +154,13 @@ println("Saving plot...")
 demand_function = "periodic_logistic"
 prefix = "study_basic"
 suffix = "_new_avg_speed"
-savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * demand_function * "_NumCors_$NumCors" * "_nc_half_jam_denom_$nc_half_jam_denominator" * "_L_$my_L" * "_r_$my_r" * "_x0_$my_x0" * "_shift_$my_shift" * suffix * ".png")
+
+display(plt)
+savefig(plt, "studies/graphics/$prefix" * "_traffic_pop_curve_diurnal_test_" * demand_function * "_NumCors_$NumCors" * "_nc_half_jam_denom_$nc_half_jam_base" * "_L_$my_L" * "_r_$my_r" * "_x0_$my_x0" * "_shift_$my_shift" * "_sharpness_$my_λ" * suffix * ".png")
 
 # Display plot
 println("Displaying plot...")
 display(plt)
+
 
 # TODO be awesome

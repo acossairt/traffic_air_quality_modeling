@@ -32,7 +32,7 @@ export period
 
 # Create parameters for "turning off" entry and exit fluxes (test-purposes)
 # Value of 1 keeps flux on, value of 0 turns flux off
-@parameters exit_on = 1 entry_on = 1
+@parameters exit_on = 1.0 entry_on = 1.0
 export exit_on, entry_on
 
 # Create variables for population model with travel demand
@@ -42,6 +42,10 @@ export np, nc, γ
 # Create variables for internal "clock" model
 @variables u(t) v(t)
 export u, v
+
+# Create external variables to track fluxes
+@variables ϕ_in(t)[1:NumPatches, 1:NumPatches, 1:NumCors] ϕ_out(t)[1:NumPatches, 1:NumPatches, 1:NumCors]
+export ϕ_in, ϕ_out
 
 #=
 Define demand function (to create "γ" for Flux functions):
@@ -63,7 +67,6 @@ Shift demand function left or right:
 =#
 v_shifted(shift) = v * cos(2 * π * shift / period) - u * sin(2 * π * shift / period)
 
-
 # How to create options for periodic_logistic vs. static?
 γ_eqs = [
     γ[1] ~ f(v_shifted(shift), r, x_0, L), # + 0.001 shift up just a hair so that demand is never 0
@@ -74,14 +77,35 @@ v_shifted(shift) = v * cos(2 * π * shift / period) - u * sin(2 * π * shift / p
 Rescale time in terms of a day that is 1440 minutes
 =#
 time_rescale = 1440 / period
+export time_rescale
 
-# Define speed-density curve -- lots of options to consider! See bottom of file
-real_calc_b(nc_half_jam, λ) = (nc_half_jam ./ (ψ .* Le)) .* (1 ./ log(2)) .^ (1 ./ λ)
-real_avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc ./ (ψ * Le)) ./ calc_b(nc_half_jam, λ)) .^ λ)
-calc_b(nc_half_jam, λ) = (nc_half_jam) .* (1 ./ log(2)) .^ (1 ./ λ)
-avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc) ./ calc_b(nc_half_jam, λ)) .^ λ)
-#avg_speed(nc, v_f, λ, nc_half_jam) = favorite(nc, v_f, λ, calc_b(nc_half_jam, λ))
+# Define speed-density curve -- lots of other versions at bottom of file
+
+#################################################
+# NOTES FROM MARTY (attempt to make it cleaner) #
+#################################################
+#vel(car_density, vel_ff, b, sharpness) = vel_ff * exp(-(car_density / b)^sharpness)
+#b(half_jam, sharpness) = half_jam .* (1./log(2)).^sharpness
+#c_den(num_cars, ψ, Le) = num_cars ./ (ψ .* Le)
+#avg_speed(nc, ψ, Le, vel_ff, sharpness, nc_half_jam) = vel(c_den(nc, ψ, Le), vel_ff, b(c_den(nc_half_jam, ψ, Le), sharpness), sharpness)
+
+vel(car_density, vel_ff, b_factor, sharpness) = vel_ff .* exp.(-1 .* (car_density ./ b_factor) .^ sharpness)
+b(half_jam, sharpness) = half_jam .* (1.0 / log(2)) .^ (1 ./ sharpness) # was somehow nicer when I had just sharpness instead of 1/sharpness?
+num_to_den(num, ψ, Le) = num ./ (ψ .* Le)
+avg_speed(nc, ψ, Le, v_f, sharpness, nc_half_jam) = vel(num_to_den(nc, ψ, Le), v_f, b(num_to_den(nc_half_jam, ψ, Le), sharpness), sharpness)
 export avg_speed
+
+# QUESTION
+# When do I have to pass parameters and when can I just call upon them? For example:
+#b = calc_b(num_to_den(nc_half_jam, ψ, Le), λ)
+
+# Old version using densities (presumably)
+#calc_b(kc_half_jam, λ) = (kc_half_jam) .* (1 ./ log(2)) .^ (1 ./ λ)
+#avg_speed(kc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((kc) ./ calc_b(kc_half_jam, λ)) .^ λ)
+
+# Exportable versions (pass all arguments)
+out_calc_b(nc_half_jam, λ, ψ, Le) = (nc_half_jam ./ (ψ .* Le)) .* (1 ./ log(2)) .^ (1 ./ λ)
+out_avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) = v_f .* exp.(-1 .* ((nc ./ (ψ .* Le)) ./ out_calc_b(nc_half_jam, λ, ψ, Le)) .^ λ)
 
 #=
 Define the corridor flux matrices:
@@ -92,10 +116,9 @@ Define the corridor flux matrices:
 
 println("define flux functions...")
 # eventually need to change γ .* np to some function β(N_D) (defined in my notebook)
-EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on) = ψ * avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) .* γ .* np .* time_rescale .* entry_on
-ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on) = (nc ./ Le) .* avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) .* time_rescale .* exit_on
-#EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on) = (avg_speed(nc, v_f, λ, nc_half_jam) / Le) .* γ .* time_rescale .* entry_on
-#ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on) = (avg_speed(nc, v_f, λ, nc_half_jam) .* nc / Le) .* time_rescale .* exit_on
+EntryFlux(nc, np, γ, nc_half_jam, v_f, λ, Le, ψ, entry_on) = ψ .* avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) .* γ .* np .* time_rescale .* entry_on
+ExitFlux(nc, nc_half_jam, v_f, λ, Le, ψ, exit_on) = (nc ./ Le) .* avg_speed(nc, ψ, Le, v_f, λ, nc_half_jam) .* time_rescale .* exit_on
+export EntryFlux, ExitFlux
 
 #=
 Define equations for model:
@@ -104,22 +127,24 @@ Define equations for model:
     Question: does it matter if u, v, and γ are evaluated before or after np and nc?
     Notice: we only used "collect()" in the equation for D.(c).
     For D.(p), we summed over the columns of the EntryFlux matrix and over the columns 
-    of the ExitFlux matrix, then took their differeNumCorse. If you don't do this (summing),
+    of the ExitFlux matrix, then took their difference. If you don't do this (summing),
     you will get an error because you will be attempting to save an object of shape 
     (2,2,1) into an object of shape (2,). (Assuming NumPatches=2)
 =#
 
 println("define eqs...")
 eqs = [
-    D.(np) ~ [sum(ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on)[:, i, :]) for i in 1:NumPatches] .- [sum(EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on)[i, :, :]) for i in 1:NumPatches],
-    D.(nc) ~ collect(-ExitFlux(nc, nc_half_jam, v_f, λ, Le, exit_on) + EntryFlux(nc, γ, nc_half_jam, v_f, λ, Le, entry_on)),
+    ϕ_in ~ collect(EntryFlux(nc, np, γ, nc_half_jam, v_f, λ, Le, ψ, exit_on)),
+    ϕ_out ~ collect(ExitFlux(nc, nc_half_jam, v_f, λ, Le, ψ, exit_on)),
+    D.(np) ~ [sum(ExitFlux(nc, nc_half_jam, v_f, λ, Le, ψ, exit_on)[:, i, :]) for i in 1:NumPatches] .- [sum(EntryFlux(nc, np, γ, nc_half_jam, v_f, λ, Le, ψ, entry_on)[i, :, :]) for i in 1:NumPatches],
+    D.(nc) ~ collect(-ExitFlux(nc, nc_half_jam, v_f, λ, Le, ψ, exit_on) + EntryFlux(nc, np, γ, nc_half_jam, v_f, λ, Le, ψ, entry_on)),
     D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
     D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
     γ_eqs...   # <-- include the triple dots to splice the equations into the list
 ]
 
 #=
-Why don't I export the following functions?
+Why don't I have to export the following functions?
 =#
 
 println("extra functions...")
