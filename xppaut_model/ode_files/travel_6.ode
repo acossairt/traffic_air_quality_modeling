@@ -36,7 +36,8 @@ g(x,a,b,c) = a*exp(-log(2)*(x/b)**c)
 #But to be rigorous and reduce the chances of numerical issues, ust adjust so function
 #tracks x up to point b then switches to an exponential that smoothly approaches
 #a in the limit. Just for numerical issues.  Beta can be understood as the proportion
-#of available buckets that are full. Once Nd>psi, that goes to 1. That is, you can't put more than one care in a "space" or bucket.
+#of available buckets that are full. Once Nd>psi, that goes to 1. That is, you can't 
+#put more than one car in a "space" or bucket.
 
 #this function is not used. Just keeping it for reference.
 #beta(x,a,b) = if(x<= b)then(x)else(a - (a-b)*exp(-(x-b)/(a-b)))
