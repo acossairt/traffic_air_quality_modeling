@@ -107,6 +107,7 @@ export demhf1, demhf2, bgd1, bgd2
 # Do these not require that I pass some arguments?
 # Also, will my dimensions be correct for these vectors?
 # And... is it fine that np is just a number, not a density?
+
 demand_eqs = [
     #γ ~ (1 .- g(np, 1, demhf1, 4)) .* f(v_shifted(shift1), dsharp, dur, 1) .+ bgd1,
     γ[1] ~ (1 .- g(np[1], 1, demhf1, 4)) .* f(v_shifted(shift1), dsharp, dur, 1) .+ bgd1,
@@ -206,6 +207,9 @@ Define dynamical equations for the full system:
 =#
 
 # Define dynamical equations
+
+println("Defining dynamical equations...")
+
 eqs = [
     ϕ_in ~ collect(EntryFlux),
     ϕ_out ~ collect(ExitFlux),
@@ -215,9 +219,10 @@ eqs = [
     demand_eqs...   # <-- include the triple dots to splice the equations into the list
 ]
 
-println("extra functions...")
 
 # Create ODE system
+
+println("Creating ODE system...")
 
 @named ode = ODESystem(eqs, t)
 
