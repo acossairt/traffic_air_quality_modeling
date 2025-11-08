@@ -190,7 +190,7 @@ Define dynamical equations for the full system:
     Because our state variables `np` and `nc` are vectors, we must sometimes use the
     "collect()" function to appropriately sum. 
     Notice: we only used "collect()" in the equation for D.(c).
-    For D.(p), we summed over the columns of the EntryFlux matrix and over the columns 
+    For D.(np), we summed over the columns of the EntryFlux matrix and over the columns 
     of the ExitFlux matrix, then took their difference. If you don't do this (summing),
     you will get an error because you will be attempting to save an object of shape 
     (2,2,1) into an object of shape (2,). (Assuming NumPatches=2)
