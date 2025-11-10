@@ -8,10 +8,11 @@ NumPatches = 2
 NumCors = 1
 export NumPatches, NumCors
 
-# Create variables for population model with travel demand
-@variables np(t)[1:NumPatches] nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors] γ(t)[1:NumPatches]
+# Create patch density, corridor density variables for population model with travel demand
+@variables np(t)[1:NumPatches] 
+@variables nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors] 
+@variables γ(t)[1:NumPatches]
 export np, nc, γ
-
 
 
 #=Functions for trip demand and corridor velocities 
@@ -44,7 +45,7 @@ export np, nc, γ
         - Parameters
             - r: logistic growth rate (controls steepness of the curve)
             - x0: x-value of the function's midpoint
-            - m: carrying capacity (supremum of the values of the function)
+            - m: carrying capacity ontinuous, and well-behaved). Commonl(supremum of the values of the function)
 
     Then, to address (2), we assume that as current congestion levels rise, demand to 
     leave a given patch will decrease (from its baseline time-based level.)
@@ -55,6 +56,12 @@ f(x, r, x0, m) = m ./ (1 .+ exp.(-r .* (x .- x0)))
 # where r = dsharp, x0 =  dur, m = 1, and x is the time of day function v_shifted(shift)    
 
 # Then need a diurnal internal clock (dynamical) equations
+
+@variables u(t) v(t)
+export u, v
+@parameters period = 24
+export period
+
 clock_eqs = [
     D(u) ~ u .* (1 .- u .^ 2 .- v .^ 2) .- (2 .* pi ./ period) .* (v),
     D(v) ~ v .* (1 .- u .^ 2 - v .^ 2) .+ (2 .* pi ./ period) .* (u),
@@ -82,17 +89,10 @@ v_shifted(shift) = v * cos(2 * π * shift / period) - u * sin(2 * π * shift / p
 
 g(x, a, b, c) = a .* exp.(-log(2) .* (x ./ b) .^ c)
 
-# Define variables and parameters for internal clock
-@variables u(t) v(t)
-export u, v
-
-@parameters period = 24
-export period
-
 
 # Parameters for time-based demand function (using logistic function)
-@parameters dsharp = 100 dur = 0.97 shift1 = 0 shift2 = 0
-export dsharp, dur, shift1, shift2
+@parameters dsharp[1:NumPatches] dur[1:NumPatches] shift[1:NumPatches]
+export dsharp, dur, shift
 # ? Should I give these names different from what is in the function?
 # x0 seems to be duration? Unclear why...
 
@@ -100,8 +100,8 @@ export dsharp, dur, shift1, shift2
 # Parameters for congestion-based demand function (using sigmoid function)
 # Each patch has a background demand level, bgd
 
-@parameters demhf1 = 3000 demhf2 = 500 bgd1 = 0 bgd2 = 0
-export demhf1, demhf2, bgd1, bgd2
+@parameters demhf[1:NumPatches] bgd[1:NumPatches]
+export demhf, bgd
 
 # Create complete demand equations (product of time-based and congestion-based functions)
 # Do these not require that I pass some arguments?
@@ -109,9 +109,8 @@ export demhf1, demhf2, bgd1, bgd2
 # And... is it fine that np is just a number, not a density?
 
 demand_eqs = [
-    #γ ~ (1 .- g(np, 1, demhf1, 4)) .* f(v_shifted(shift1), dsharp, dur, 1) .+ bgd1,
-    γ[1] ~ (1 .- g(np[1], 1, demhf1, 4)) .* f(v_shifted(shift1), dsharp, dur, 1) .+ bgd1,
-    γ[2] ~ (1 .- g(np[2], 1, demhf2, 4)) .* f(-v_shifted(shift2), dsharp, dur, 1) .+ bgd2
+    γ[1] ~ (1 .- g(np[1], 1, demhf[1], 4)) .* f(v_shifted(shift[1]), dsharp[1], dur[1], 1) .+ bgd[1],
+    γ[2] ~ (1 .- g(np[2], 1, demhf[2], 4)) .* f(v_shifted(shift[2]), dsharp[2], dur[2], 1) .+ bgd[1]
 ]
 
 #=
@@ -141,15 +140,17 @@ demand_eqs = [
 =#
 
 # Parameters for road geometry and velocity-density relation on the corridor
-@parameters ψ L
+@parameters ψ[1:NumCors] L[1:NumCors]
 export ψ, L
 
 # Parameters for velocity-density relation on the corridor
-@parameters vff[1:NumPatches, 1:NumPatches, 1:NumCors] nc_half_ff[1:NumPatches, 1:NumPatches, 1:NumCors] vsharp[1:NumPatches, 1:NumPatches, 1:NumCors]
+@parameters vff[1:NumPatches, 1:NumPatches, 1:NumCors] 
+@parameters nc_half_ff[1:NumPatches, 1:NumPatches, 1:NumCors] 
+@parameters vsharp[1:NumPatches, 1:NumPatches, 1:NumCors]
 export vff, nc_half_ff, vsharp
 
 # Function to compute average velocity on the corridor
-vel_cor  = g.(nc ./ (ψ * L), vff, nc_half_ff, vsharp)
+vel_cor  = g.(nc ./ (ψ .* L), vff, nc_half_ff, vsharp)
 export vel_cor
 
 # Parameters for velocity-density relation on the on-ramp
@@ -158,7 +159,7 @@ export onff, on_half, onsharp
 
 # When do I need . notation and when do I not?
 # Also, do I need to pass the variables every time? The parameters?
-ramp_flux = g.(nc ./ (ψ * L), onff, on_half, onsharp)
+ramp_flux = g.(nc ./ (ψ .* L), onff, on_half, onsharp)
 export ramp_flux
 
 #=
@@ -178,7 +179,7 @@ export ramp_flux
 #@parameters entry_on exit_on
 #export entry_on, exit_on
 
-# Rescale time in terms of a day that is 1440 minutes (24 hours)
+# Rescale time in terms of aperiod=24 day that is 1440 minutes (24 hours)
 #time_rescale = 1440 / period
 #export time_rescale
 
