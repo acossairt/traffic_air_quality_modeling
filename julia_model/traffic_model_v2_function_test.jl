@@ -9,13 +9,13 @@ NumCors = 1
 export NumPatches, NumCors
 
 # Create patch density, corridor density variables for population model with travel demand
-@variables np(t)[1:NumPatches] 
-@variables nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors] 
+@variables np(t)[1:NumPatches]
+@variables nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors]
 @variables γ(t)[1:NumPatches]
 export np, nc, γ
 
 
-#=Functions for trip demand and corridor velocities 
+#=Functions for trip demand and corridor velocities
 
     Modeling time-based demand for travel
     -------------------------------------
@@ -63,8 +63,8 @@ export u, v
 export period
 
 clock_eqs = [
-    D(u) ~ u .* (1 .- u .^ 2 .- v .^ 2) .- (2 .* pi ./ period) .* (v),
-    D(v) ~ v .* (1 .- u .^ 2 - v .^ 2) .+ (2 .* pi ./ period) .* (u),
+    D(u) ~ u * (1 - u^2 - v^2) - (2 * pi / period) * (v),
+    D(v) ~ v * (1 - u^2 - v^2) + (2 * pi / period) * (u),
 ]
 
 # Then need function to create shifted version of v(t) to input into f().
@@ -109,8 +109,8 @@ export demhf, bgd
 # And... is it fine that np is just a number, not a density?
 
 demand_eqs = [
-    γ[1] ~ (1 .- g(np[1], 1, demhf[1], 4)) .* f(v_shifted(shift[1]), dsharp[1], dur[1], 1) .+ bgd[1],
-    γ[2] ~ (1 .- g(np[2], 1, demhf[2], 4)) .* f(v_shifted(shift[2]), dsharp[2], dur[2], 1) .+ bgd[1]
+    γ[1] .~ (1 .- g(np[1], 1, demhf[1], 4)) .* f(v_shifted(shift[1]), dsharp[1], dur[1], 1) .+ bgd[1],
+    γ[2] .~ (1 .- g(np[2], 1, demhf[2], 4)) .* f(v_shifted(shift[2]), dsharp[2], dur[2], 1) .+ bgd[1]
 ]
 
 #=
@@ -144,13 +144,13 @@ demand_eqs = [
 export ψ, L
 
 # Parameters for velocity-density relation on the corridor
-@parameters vff[1:NumPatches, 1:NumPatches, 1:NumCors] 
-@parameters nc_half_ff[1:NumPatches, 1:NumPatches, 1:NumCors] 
+@parameters vff[1:NumPatches, 1:NumPatches, 1:NumCors]
+@parameters nc_half_ff[1:NumPatches, 1:NumPatches, 1:NumCors]
 @parameters vsharp[1:NumPatches, 1:NumPatches, 1:NumCors]
 export vff, nc_half_ff, vsharp
 
 # Function to compute average velocity on the corridor
-vel_cor  = g.(nc ./ (ψ .* L), vff, nc_half_ff, vsharp)
+vel_cor = g.(nc ./ (ψ .* L), vff, nc_half_ff, vsharp)
 export vel_cor
 
 # Parameters for velocity-density relation on the on-ramp
@@ -207,26 +207,128 @@ Define dynamical equations for the full system:
     (2,2,1) into an object of shape (2,). (Assuming NumPatches=2)
 =#
 
-# Define dynamical equations
+println("\nTesting variables")
+ϕ_out_test = collect(ExitFlux)
+display(ϕ_out_test)
 
-println("Defining dynamical equations...")
+# Define dynamical equations
+println("\nDefining dynamical equations...")
+
+ϕ_in = collect(EntryFlux)
+ϕ_out = collect(ExitFlux)
 
 eqs = [
-    ϕ_in ~ collect(EntryFlux),
-    ϕ_out ~ collect(ExitFlux),
-    D.(np) ~ - [sum(ϕ_in[i, :, :]) for i in 1:NumPatches] .+ [sum(ϕ_out[:, i, :]) for i in 1:NumPatches],
-    D.(nc) ~ ϕ_in .- ϕ_out,
+    D.(np) ~ -[sum(ϕ_in[i, :, :]) for i in 1:NumPatches] .+ [sum(ϕ_out[:, i, :]) for i in 1:NumPatches],
+    D.(nc) ~ collect(-ExitFlux(nc, L, vff, nc_half_ff, vsharp) .+ EntryFlux(nc, γ, ψ, L, onff, on_half, onsharp)), #ϕ_in .- ϕ_out,
     clock_eqs...,
     demand_eqs...   # <-- include the triple dots to splice the equations into the list
 ]
 
+#=
+# Claude solution 1
+eqs = [
+    vec(ϕ_in .~ EntryFlux)...,  # Flatten to individual scalar equations
+    vec(ϕ_out .~ ExitFlux)...,  # Flatten to individual scalar equations
+    D.(np) .~ -[sum(ϕ_in[i, :, :]) for i in 1:NumPatches] .+ [sum(ϕ_out[:, i, :]) for i in 1:NumPatches],
+    vec(D.(nc) .~ ϕ_in .- ϕ_out)...,  # Flatten to individual scalar equations
+    clock_eqs...,
+    demand_eqs...
+]
+=#
 
-# Create ODE system
-
-println("Creating ODE system...")
-
-@named ode = ODESystem(eqs, t)
+#=
+# Claude solution 2
+eqs = [
+    [ϕ_in[i, j, k] .~ EntryFlux[i, j, k] for i in 1:NumPatches, j in 1:NumPatches, k in 1:NumCors]...,
+    [ϕ_out[i, j, k] .~ ExitFlux[i, j, k] for i in 1:NumPatches, j in 1:NumPatches, k in 1:NumCors]...,
+    [D(np[i]) .~ -sum(ϕ_in[i, :, :]) .+ sum(ϕ_out[:, i, :]) for i in 1:NumPatches]..., # wrong?
+    [D(nc[i, j, k]) .~ ϕ_in[i, j, k] .- ϕ_out[i, j, k] for i in 1:NumPatches, j in 1:NumPatches, k in 1:NumCors]...,
+    clock_eqs...,
+    demand_eqs...
+]
+=#
 
 # Create and return ODE problem and solve it
 #prob = ODEProblem(complete(ode), u0, tspan, p)
 #sol = solve(prob, Tsit5(); saveat=1.0)
+
+##################################################
+# Test for parameter values used in XPPAUT study #
+##################################################
+
+NumPatches = 2
+NumCors = 1
+
+println("NumPatches: $NumPatches, NumCors: $NumCors")
+
+# Set timescale
+my_period = 24           # 24 hours
+t_end = my_period        # Change if you only want to examine part of a day (< my_period), or multiple days (> my_period)
+tspan = (0.0, t_end);    #time span in minutes.
+
+# Set initial conditions
+np_init = [10000; 500]
+nc_init = zeros(NumPatches, NumPatches, NumCors)
+u_init = 1
+v_init = 0
+γ_init = [0.6; 0.6] # I think this is basically trprp?
+
+u0 = [nc => nc_init, np => np_init, γ => γ_init, u => u_init, v => v_init];
+
+println("Setting up parameters...")
+
+# Parameters for calculating average space-mean speed, and therefore fluxes
+my_dsharp = 200 * ones(NumPatches)
+my_dur = 0.97 * ones(NumPatches)
+my_shift = 0 * ones(NumPatches)
+my_demhf = 0.3 * ones(NumPatches)
+my_bgd = 0 * ones(NumPatches)
+my_ψ = 100 * ones(NumCors)
+my_L = 30 * ones(NumCors)
+my_vff = 120 * ones(NumPatches, NumPatches, NumCors)
+my_vff[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 0 # no movement in loops
+my_vsharp = 1 * ones(NumPatches, NumPatches, NumCors)
+my_nc_half_ff = 0.3 * ones(NumPatches, NumPatches, NumCors)
+my_nc_half_ff[[CartesianIndex(i, i, k) for i in 1:NumPatches, k in 1:NumCors]] .= 1e9 # set diagonal values to almost Inf
+my_onff = 5000
+my_on_half = 0.5
+my_onsharp = 1
+
+println("Free-flow velocities (my_vff):")
+display(my_vff)
+
+println("Half ff densities:")
+display(my_nc_half_ff)
+
+# Make parameters list
+p = [
+    dsharp => my_dsharp,
+    dur => my_dur,
+    shift => my_shift,
+    demhf => my_demhf,
+    bgd => my_bgd,
+    ψ => my_ψ,
+    L => my_L,
+    vff => my_vff,
+    vsharp => my_vsharp,
+    nc_half_ff => my_nc_half_ff,
+    onff => my_onff,
+    on_half => my_on_half,
+    onsharp => my_onsharp
+];
+
+# Create ODE system
+println("Creating ODE system...")
+@named ode = ODESystem(eqs, t)
+
+# Simplify structure and set up model
+println("Simplifying structure...") # because the system has vector unknowns, we need to simplify it
+simple_sys = structural_simplify(ode)
+
+println("Creating problem...")
+#prob = ODEProblem(complete(ode), u0, tspan, p)
+prob = ODEProblem(simple_sys, u0, tspan, p)
+
+#println("Model setup done!")
+
+#sol = solve(prob, Tsit5())
