@@ -9,7 +9,7 @@ NumCors = 1
 @variables np(t)[1:NumPatches] 
 @variables nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors] 
 @variables γ(t)[1:NumPatches, 1:NumPatches]
-#@variables ec(t)[1:NumPatches,1:NumPatches, 1:NumCors]
+@variables ec(t)[1:NumPatches,1:NumPatches, 1:NumCors]
 @variables u(t) v(t)
 
 # parameters
@@ -59,9 +59,7 @@ PatchEntryFlux = [sum(collect(CorExitFlux[:, i, :])) for i in 1:NumPatches]
 
 # and, finally, compute emissions..
 
-#emission_eqs = [
-#    ec ~ 0.1 .* nc .* vel_cor
-#]
+emission_eqs  = [ec ~ nc .* vel_cor]
 
 # now build dynamics using expressions directly
 eqs = [
@@ -69,6 +67,7 @@ D.(np) ~ PatchEntryFlux .- PatchExitFlux,
 D.(nc) ~ CorEntryFlux .- CorExitFlux,
 demand_eqs...,
 clock_eqs...,
+emission_eqs...
 ]
 
 # Assemble the ODE system
