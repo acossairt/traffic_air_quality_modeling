@@ -6,10 +6,17 @@ NumPatches = 2
 NumCors = 1
 
 #variables, patch, corridor populations, trip demand, diurnal clock
+#average velocity and emission flux per corridor and total emissions
 @variables np(t)[1:NumPatches] 
 @variables nc(t)[1:NumPatches, 1:NumPatches, 1:NumCors] 
 @variables γ(t)[1:NumPatches, 1:NumPatches]
+<<<<<<< HEAD
+@variables v̄(t)[1:NumPatches, 1:NumPatches, 1:NumCors]
 @variables ec(t)[1:NumPatches,1:NumPatches, 1:NumCors]
+@variables et(t)
+=======
+@variables ec(t)[1:NumPatches,1:NumPatches, 1:NumCors]
+>>>>>>> 99015c3cfd9f26652291c71e2f15c63225d6feb1
 @variables u(t) v(t)
 
 # parameters
@@ -57,16 +64,27 @@ PatchExitFlux  = [sum(collect(CorEntryFlux[i, :, :])) for i in 1:NumPatches]
 # sum over origin patches arriving in each patch -> length NumPatches
 PatchEntryFlux = [sum(collect(CorExitFlux[:, i, :])) for i in 1:NumPatches] 
 
-# and, finally, compute emissions..
+#Calculate emission fluxes per corridor and total
+CorEmissionFlux = 0.03 * nc .* vel_cor
+#Sum over all corridors
+TotEmissionFlux = sum(collect(CorEmissionFlux[:,:,:]))
 
+<<<<<<< HEAD
+# now build dynamics using expressions directly and include some 
+# intermediate quantities for visualization
+=======
 emission_eqs  = [ec ~ nc .* vel_cor]
 
 # now build dynamics using expressions directly
+>>>>>>> 99015c3cfd9f26652291c71e2f15c63225d6feb1
 eqs = [
 D.(np) ~ PatchEntryFlux .- PatchExitFlux,
 D.(nc) ~ CorEntryFlux .- CorExitFlux,
 demand_eqs...,
 clock_eqs...,
+v̄ ~ vel_cor,
+ec ~ CorEmissionFlux,
+D(et) ~ TotEmissionFlux
 emission_eqs...
 ]
 
@@ -86,7 +104,8 @@ u0 = [
     np[2] => 0,
     nc => zeros(NumPatches, NumPatches, NumCors),
     u => 1.0,
-    v => 0.0
+    v => 0.0,
+    et => 0.0,
 ]
 
 tspan = (0.0, 48.0)
@@ -98,4 +117,7 @@ prob = ODEProblem(mtkcompile(ode), merge(Dict(u0),p), tspan)
 sol = solve(prob, Tsit5(), saveat=0.1)
 
 # Plot results
-plot(sol, idxs=[np[1], np[2], nc[1,2,1], nc[2,1,1]], xlabel="Time (hours)", ylabel="Population", title="Patch Populations Over Time")
+plot1=plot(sol, idxs=[np[1], np[2], nc[1,2,1], nc[2,1,1]], xlabel="Time (hours)", ylabel="Population", title="Patch Populations Over Time")
+plot2=plot(sol, idxs=[nc[1,2,1],10 .* v̄[1,2,1],ec[1,2,1],nc[2,1,1], 10 .* v̄[2,1,1], ec[2,1,1], et])
+display(plot1)
+display(plot2)
