@@ -110,3 +110,80 @@ plot1=plot(sol, idxs=[np[1], np[2], nc[1,2,1], nc[2,1,1]], xlabel="Time (hours)"
 plot2=plot(sol, idxs=[nc[1,2,1],10 .* v̄[1,2,1],ec[1,2,1],nc[2,1,1], 10 .* v̄[2,1,1], ec[2,1,1], et])
 display(plot1)
 display(plot2)
+
+
+
+
+# Code for estimating emissions#
+# Make a U-shaped curve using data from the California paper
+start = 5
+my_step = 5
+stop = 100
+mph_to_kmh = 1.60934
+speed_arr = collect(start:my_step:stop) * mph_to_kmh # convert mph to kmh
+emissions_arr = [1200, 950, 700, 500, 425, 350, 325, 310, 309, 308, 308, 308, 309, 320, 330, 350, 375, 400, 450, 550] * mph_to_kmh
+plot(speed_arr, emissions_arr)
+
+# Interpolate: emissions as a function of speed
+interp_fn = linear_interpolation(speed_arr, emissions_arr, extrapolation_bc=Line())
+
+# Calculate emissions rates from a given array of speeds
+function calc_emissions_from_speed(vehicle_pop_arr, my_speed_arr, interp_fn)
+    #=
+        Returns:
+            - emissions: array (dim 1) 
+                emission rates (g/km) for whole traffic volume (all vehicles) at each
+                time step
+        Arguments:
+            - vehicle_pop_arr: array (dim 1) of vehicle population densities at 
+              each time step
+            - my_speed_arr: array (dim 1) of avg vehicle speeds at each time step
+            - interp_fn: function (interpolated) relating speeds to emissions
+    =#
+    interpolated_emission_per_vehicle = interp_fn(my_speed_arr)
+    emissions = interpolated_emission_per_vehicle .* my_speed_arr .* vehicle_pop_arr
+    return emissions
+end
+
+# Calculate total emissions from emissions rates
+function integrate_emissions(x, y, a, b)
+    # Create an interpolation function over data points
+    interp_func = LinearInterpolation(x, y, extrapolation_bc=Line())
+
+    # Integrate the interpolated function from a to b
+    result, error = quadgk(interp_func, a, b)
+
+    return result, error
+end
+
+# Example implementation (variable names and sol variables will need to be updated)
+
+# Calculate emission rates for Corridor 1
+pop_C1 = sol[3, :] # needs updated
+time = sol.t
+C1_speeds = calc_space_mean_speed_alternative_greenshields.(v_f, pop_C1, C1_half)
+C1_emissions = calc_emissions_from_speed(pop_C1, C1_speeds, interp_fn)
+C1_flow = calc_flow(pop_C1, v_f, C1_jam)
+
+# Same for Corridor 2
+pop_C2 = sol[5, :] # needs updated
+time = sol.t
+C2_speeds = calc_space_mean_speed_alternative_greenshields.(v_f, pop_C2, C2_half)
+C2_emissions = calc_emissions_from_speed(pop_C2, C2_speeds, interp_fn)
+C2_flow = calc_flow(pop_C2, v_f, C2_jam)
+
+# Total emissions
+C1_total_emissions = integrate_emissions(time, C1_emissions, 0.0, 100.0)[1] # [1] for value, [2] for error
+formatted_C1_em = @sprintf("%.3f", C1_total_emissions) # Nicer format for printing on plots
+
+C2_total_emissions = integrate_emissions(time, C2_emissions, 0.0, 100.0)[1]
+formatted_C2_em = @sprintf("%.3f", C2_total_emissions)
+
+Total_emissions = C1_total_emissions + C2_total_emissions
+formatted_T_em = @sprintf("%.3f", Total_emissions)
+
+C1_fraction_emissions = 100 * C1_total_emissions / Total_emissions
+formatted_C1_fraction = @sprintf("%.2f", C1_fraction_emissions)
+
+C2_fraction_emissions = 100 * C2_total_emissions / Total_emissions
+formatted_C2_fraction = @sprintf("%.2f", C2_fraction_emissions)
