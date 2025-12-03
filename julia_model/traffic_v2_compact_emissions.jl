@@ -62,13 +62,11 @@ PatchEntryFlux = [sum(collect(CorExitFlux[:, i, :])) for i in 1:NumPatches]
 
 #corridor emission flux expression (symbolic) from polynomial fit
 # coefficients from polynomial fit
-c0 = 1615.7828947368391
-c1 = -56.14791926662003
-c2 = 0.874513202877857
-c3 = -0.005917513691615758
-c4 = 1.4884118195804491e-5
+c = [0.9449071207432054, 0.8761499774070579, 
+-0.029999531967464826, 0.0004680693625443692, 
+-3.1760158923592917e-6, 8.050724090389599e-9]
 
-em_fit(x) = c0 + c1*x + c2*x^2 + c3*x^3 + c4*x^4
+em_fit(x) = c[1] + c[2]*x + c[3]*x^2 + c[4]*x^3 + c[5]*x^4 + c[6]*x^5
 
 #Calculate emission fluxes per corridor and total
 CorEmissionFlux = em_fit.(vel_cor) .* nc  # shape: (NumPatches,NumPatches,NumCors)
@@ -99,8 +97,8 @@ p = merge(
 )
 
 u0 = [
-    np[1] => 10000,
-    np[2] => 0,
+    np[1] => 9424,
+    np[2] => 576,
     nc => zeros(NumPatches, NumPatches, NumCors),
     u => 1.0,
     v => 0.0,
@@ -116,7 +114,38 @@ prob = ODEProblem(mtkcompile(ode), merge(Dict(u0),p), tspan)
 sol = solve(prob, Tsit5(), saveat=0.1)
 
 # Plot results
-plot1=plot(sol, idxs=[np[1], np[2], nc[1,2,1], nc[2,1,1]], xlabel="Time (hours)", ylabel="Population", title="Patch Populations Over Time")
-plot2=plot(sol, idxs=[nc[1,2,1],10 .* v̄[1,2,1],ec[1,2,1],nc[2,1,1], 10 .* v̄[2,1,1], ec[2,1,1], et])
+plot1=plot(sol, idxs=[np[1], np[2], nc[1,2,1], nc[2,1,1]], 
+            xlabel="Time (hours)", ylabel="Population (number of vehicles)", legend=:top,
+            ylims=(0,13000), yformatter=:plain, 
+            title="Patch and Corridor Populations Over Time",
+            label=["np[1]" "np[2]" "nc[1→2]" "nc[2→1]"])
+# Left axis: vehicle counts
+plot2 = plot(sol, idxs=[nc[1,2,1], nc[2,1,1]],
+             ylabel="Number of Vehicles in Corridor", legend=:topleft,
+             ylims=(0,2200), xlabel="Time (hours)", 
+             title="Corridor Vehicle Counts and Emissions Over Time",
+             label=["nc[1→2]" "nc[2→1]"])
+
+# Right axis: emissions (convert kg to metric tons)
+plot2 = plot!(twinx(plot2), sol, idxs=[0.001 .* ec[1,2,1], 0.001 .* ec[2,1,1], 0.001 .* et],
+              ylabel="Emissions (metric tons)", legend=:topright,
+              ylims=(0,220), xlabel="",
+              linestyle=:dash, color=[:red :orange :brown],
+              label=["ec[1→2] (metric tons/hr)" "ec[2→1] (metric tons/hr)" "total (metric tons)"])
+
+# Left axis: emissions per vehicle (kg/hr per vehicle)
+plot3 = plot(sol, idxs=[ec[1,2,1] ./ nc[1,2,1], ec[2,1,1] ./ nc[2,1,1]],
+             ylabel="Emissions per vehicle (kg/hr)", legend=:topleft,
+             xlabel="Time (hours)", title="Corridor Emissions per Vehicle and Velocity Over Time",
+             label=["ec[1→2]/nc" "ec[2→1]/nc"],ylims=(0,30))
+
+# Right axis: velocity
+plot3 = plot!(twinx(plot3), sol, idxs=[v̄[1,2,1], v̄[2,1,1]],
+              ylabel="Velocity (km/hr)", legend=:topright,
+              xlabel="", ylims=(0,200),
+              linestyle=:dash, color=[:red :orange],
+              label=["v̄[1→2]" "v̄[2→1]"])
+
 display(plot1)
 display(plot2)
+display(plot3)

@@ -12,8 +12,14 @@ mph_to_kmh = 1.60934
 speed_range = range(5*mph_to_kmh, step=5*mph_to_kmh, stop=100*mph_to_kmh)
 x = collect(speed_range)    # numeric x vector (length 20)
 
-y = [1200, 950, 700, 500, 425, 350, 325, 310, 309, 308,
+ygpm = [1200, 950, 700, 500, 425, 350, 325, 310, 309, 308,
      308, 308, 309, 320, 330, 350, 375, 400, 450, 550]
+
+# convert from g/mi to kg/km
+ykgpkm = ygpm ./ (1000.0 * mph_to_kmh)
+
+#convert from kg/km to kg/hour
+y = collect(ykgpkm) .* x
 
 # LOOCV score for a given polynomial degree (mean squared error)
 function loocv_mse(x, y, deg)
@@ -56,6 +62,6 @@ println(coeffs(p_best))
 
 # Plot data and fitted curve
 xq = range(first(x), last(x), length=400)
-plot(x, y, seriestype=:scatter, label="data", xlabel="speed (km/h)", ylabel="emissions (units)")
+plot(x, y, seriestype=:scatter, ylims=(0, maximum(y)*1.1), xlabel="speed (km/h)", ylabel="emissions (kg/hr)")
 plot!(xq, p_best.(xq), label="poly degree $bestdeg", linewidth=2)
 title!("Emissions vs speed — polynomial fit (deg=$bestdeg)")
