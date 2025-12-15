@@ -62,6 +62,17 @@ println(coeffs(p_best))
 
 # Plot data and fitted curve
 xq = range(first(x), last(x), length=400)
-plot(x, y, seriestype=:scatter, ylims=(0, maximum(y)*1.1), xlabel="speed (km/h)", ylabel="emissions (kg/hr)")
-plot!(xq, p_best.(xq), label="poly degree $bestdeg", linewidth=2)
-title!("Emissions vs speed — polynomial fit (deg=$bestdeg)")
+plot1 = plot(x, y, seriestype=:scatter, ylims=(0, maximum(y)*1.1), 
+    xlabel="Speed (km/h)", ylabel="Emissions (kg/hr)")
+plot1 = plot!(xq, p_best.(xq), label="poly degree $bestdeg", linewidth=2)
+plot1 = title!("Emissions vs speed — polynomial fit (deg=$bestdeg)")
+
+display(plot1)
+
+#plot original data in g/mi vs speed in mph
+xq_mph = [5:5:100]
+plot2 = scatter(xq_mph, ygpm, 
+    label="", title="Emissions vs speed — original data",
+    xlabel="Speed (mph)", ylabel ="Emissions (g/mi)")
+
+display(plot2)
