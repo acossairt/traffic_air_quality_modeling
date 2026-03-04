@@ -158,7 +158,7 @@ export ψ, L
 export vff, nc_half_ff, vsharp
 
 # Function to compute average velocity on the corridor
-# Aurora's version 
+# Aurora's version
 vel_cor(nc, ψ, L, vff, nc_half_ff, vsharp) = g.(nc ./ (ψ .* L), vff, nc_half_ff, vsharp)
 #vel_cor = g.(nc ./ (ψ .* L), vff, nc_half_ff, vsharp)
 export vel_cor
@@ -169,7 +169,7 @@ export onff, on_half, onsharp
 
 # When do I need . notation and when do I not?
 # Also, do I need to pass the variables every time? The parameters?
-# Aurora's version 
+# Aurora's version
 ramp_flux(nc, ψ, L, onff, on_half, onsharp) = g.(nc ./ (ψ .* L), onff, on_half, onsharp)
 #ramp_flux = g.(nc ./ (ψ .* L), onff, on_half, onsharp)
 export ramp_flux
