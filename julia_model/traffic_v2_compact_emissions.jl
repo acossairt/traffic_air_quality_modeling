@@ -116,35 +116,40 @@ sol = solve(prob, Tsit5(), saveat=0.1)
 # Plot results
 plot1=plot(sol, idxs=[np[1], np[2], nc[1,2,1], nc[2,1,1]], 
             xlabel="Time (hours)", ylabel="Population (number of vehicles)", legend=:top,
-            ylims=(0,13000), yformatter=:plain, 
+            ylims=(0,14000), yformatter=:plain,
             title="Patch and Corridor Populations Over Time",
-            label=["np[1]" "np[2]" "nc[1→2]" "nc[2→1]"])
+            label=["np[1]" "np[2]" "nc[1→2]" "nc[2→1]"],legendfontsize=11, 
+            tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 # Left axis: vehicle counts
 plot2 = plot(sol, idxs=[nc[1,2,1], nc[2,1,1]],
              ylabel="Number of Vehicles in Corridor", legend=:topleft,
-             ylims=(0,2200), xlabel="Time (hours)", 
+             ylims=(0,2300), xlabel="Time (hours)", 
              title="Corridor Vehicle Counts and Emissions Over Time",
-             label=["nc[1→2]" "nc[2→1]"])
+             label=["nc[1→2]" "nc[2→1]"],legendfontsize=11, 
+             tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 
 # Right axis: emissions (convert kg to metric tons)
 plot2 = plot!(twinx(plot2), sol, idxs=[0.001 .* ec[1,2,1], 0.001 .* ec[2,1,1], 0.001 .* et],
               ylabel="Emissions (metric tons)", legend=:topright,
-              ylims=(0,220), xlabel="",
+              ylims=(0,230), xlabel="",
               linestyle=:dash, color=[:red :orange :brown],
-              label=["ec[1→2] (metric tons/hr)" "ec[2→1] (metric tons/hr)" "total (metric tons)"])
+              label=["ec[1→2] (metric tons/hr)" "ec[2→1] (metric tons/hr)" "total (metric tons)"],
+              legendfontsize=11, tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 
 # Left axis: emissions per vehicle (kg/hr per vehicle)
 plot3 = plot(sol, idxs=[ec[1,2,1] ./ nc[1,2,1], ec[2,1,1] ./ nc[2,1,1]],
              ylabel="Emissions per vehicle (kg/hr)", legend=:topleft,
              xlabel="Time (hours)", title="Corridor Emissions per Vehicle and Velocity Over Time",
-             label=["ec[1→2]/nc" "ec[2→1]/nc"],ylims=(0,30))
+             label=["ec[1→2]/nc" "ec[2→1]/nc"],ylims=(0,35),legendfontsize=11, 
+             tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 
 # Right axis: velocity
 plot3 = plot!(twinx(plot3), sol, idxs=[v̄[1,2,1], v̄[2,1,1]],
               ylabel="Velocity (km/hr)", legend=:topright,
-              xlabel="", ylims=(0,200),
+              xlabel="", ylims=(0,220),
               linestyle=:dash, color=[:red :orange],
-              label=["v̄[1→2]" "v̄[2→1]"])
+              label=["v̄[1→2]" "v̄[2→1]"],legendfontsize=11, 
+              tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 
 display(plot1)
 display(plot2)
