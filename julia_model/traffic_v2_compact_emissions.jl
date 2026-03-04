@@ -132,7 +132,7 @@ plot2 = plot(sol, idxs=[nc[1, 2, 1], nc[2, 1, 1]],
 plot2 = plot!(twinx(plot2), sol, idxs=[0.001 .* ec[1, 2, 1], 0.001 .* ec[2, 1, 1], 0.001 .* et],
     ylabel="Emissions (metric tons)", legend=:topright,
     ylims=(0, 230), xlabel="",
-    linestyle=:dash, color=[:red :orange :brown],
+    linestyle=:dashdot, color=[:red :orange :brown],
     label=["ec[1→2] (metric tons/hr)" "ec[2→1] (metric tons/hr)" "total (metric tons)"],
     legendfontsize=11, tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 
@@ -147,7 +147,7 @@ plot3 = plot(sol, idxs=[ec[1, 2, 1] ./ nc[1, 2, 1], ec[2, 1, 1] ./ nc[2, 1, 1]],
 plot3 = plot!(twinx(plot3), sol, idxs=[v̄[1, 2, 1], v̄[2, 1, 1]],
     ylabel="Velocity (km/hr)", legend=:topright,
     xlabel="", ylims=(0, 220),
-    linestyle=:dash, color=[:red :orange],
+    linestyle=:dashdot, color=[:red :orange],
     label=["v̄[1→2]" "v̄[2→1]"], legendfontsize=11,
     tickfontsize=12, guidefontsize=14, titlefontsize=14, linewidth=3)
 
