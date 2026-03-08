@@ -159,3 +159,7 @@ savefig(plot3, "images/emissions_pops.pdf")
 display(plot1)
 display(plot2)
 display(plot3)
+
+savefig(plot1, "patch_corridor_populations.pdf")
+savefig(plot2, "corridor_emissions.pdf")
+savefig(plot3, "corridor_emissions_velocity.pdf")   
