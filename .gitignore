@@ -5,3 +5,18 @@ xpp.app
 #Ignore all checkpoint files
 
 .ipynb_checkpoints/
+
+# Python bytecode / virtualenvs
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Web app local state (SQLite DB, generated run outputs)
+web/db.sqlite3
+web/db.sqlite3-journal
+web/run_outputs/
+
+# OS / editor cruft
+.DS_Store
