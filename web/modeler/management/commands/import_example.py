@@ -9,7 +9,9 @@ from modeler.models import Edge, Patch, Project
 
 
 class Command(BaseCommand):
-    help = "Import julia_model/example_config.json as a Project named 'Example 2-patch'."
+    help = "Import julia_model/example_config.json as the read-only 'Default 2-patch template' project."
+
+    TEMPLATE_NAME = "Default 2-patch template"
 
     def handle(self, *args, **opts):
         config_path = Path(settings.BASE_DIR).parent / "julia_model" / "example_config.json"
@@ -17,18 +19,27 @@ class Command(BaseCommand):
             cfg = json.load(f)
 
         project, created = Project.objects.get_or_create(
-            name="Example 2-patch",
+            name=self.TEMPLATE_NAME,
             defaults=dict(
-                description="Imported from julia_model/example_config.json",
+                description="Read-only baseline. Use 'New from template' to start a sandbox.",
                 tspan_start=cfg["sim"]["tspan"][0],
                 tspan_end=cfg["sim"]["tspan"][1],
                 period=cfg["sim"]["period"],
                 psi=cfg["sim"]["psi"],
                 L=cfg["sim"]["L"],
                 saveat=cfg["sim"]["saveat"],
+                is_template=True,
             ),
         )
         if not created:
+            project.is_template = True
+            project.tspan_start = cfg["sim"]["tspan"][0]
+            project.tspan_end = cfg["sim"]["tspan"][1]
+            project.period = cfg["sim"]["period"]
+            project.psi = cfg["sim"]["psi"]
+            project.L = cfg["sim"]["L"]
+            project.saveat = cfg["sim"]["saveat"]
+            project.save()
             project.patches.all().delete()
             project.edges.all().delete()
 

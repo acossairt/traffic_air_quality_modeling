@@ -2,12 +2,13 @@ import json
 from pathlib import Path
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import EDGE_SLIDER_FIELDS, EdgeFormSet, PatchFormSet, ProjectForm
-from .models import Project, Run
+from .models import Edge, Patch, Project, Run
 from .tasks import start_run
 
 
@@ -50,6 +51,9 @@ def project_edit(request, pk):
     edge_kwargs = {"project": project}
 
     if request.method == "POST":
+        if project.is_template:
+            messages.error(request, "Templates are read-only — clone it first to make changes.")
+            return redirect("project_edit", pk=project.pk)
         form = ProjectForm(request.POST, instance=project)
         patch_formset = PatchFormSet(request.POST, instance=project, prefix="patches")
         edge_formset = EdgeFormSet(
@@ -92,10 +96,66 @@ def project_config_json(request, pk):
 @require_POST
 def project_delete(request, pk):
     project = get_object_or_404(Project, pk=pk)
+    if project.is_template:
+        messages.error(request, "Templates can't be deleted.")
+        return redirect("project_list")
     name = project.name
     project.delete()
     messages.success(request, f"Deleted project '{name}'.")
     return redirect("project_list")
+
+
+@require_POST
+@transaction.atomic
+def project_clone(request, pk):
+    """Duplicate a project (typically the template) into a new editable sandbox."""
+    source = get_object_or_404(Project, pk=pk)
+
+    new_name = (request.POST.get("name") or "").strip() or f"Copy of {source.name}"
+
+    clone = Project.objects.create(
+        name=new_name,
+        description=source.description,
+        owner=request.user if request.user.is_authenticated else None,
+        tspan_start=source.tspan_start,
+        tspan_end=source.tspan_end,
+        period=source.period,
+        psi=source.psi,
+        L=source.L,
+        saveat=source.saveat,
+        is_template=False,
+    )
+
+    patch_id_map = {}
+    for p in source.patches.all():
+        new_patch = Patch.objects.create(
+            project=clone,
+            label=p.label,
+            initial_pop=p.initial_pop,
+            display_order=p.display_order,
+        )
+        patch_id_map[p.pk] = new_patch
+
+    for e in source.edges.all():
+        Edge.objects.create(
+            project=clone,
+            from_patch=patch_id_map[e.from_patch_id],
+            to_patch=patch_id_map[e.to_patch_id],
+            vff=e.vff,
+            nc_half_ff=e.nc_half_ff,
+            vsharp=e.vsharp,
+            demhf=e.demhf,
+            shift=e.shift,
+            dur=e.dur,
+            dsharp=e.dsharp,
+            bgd=e.bgd,
+            onff=e.onff,
+            on_half=e.on_half,
+            onsharp=e.onsharp,
+        )
+
+    messages.success(request, f"Cloned '{source.name}' → '{clone.name}'.")
+    return redirect("project_edit", pk=clone.pk)
 
 
 @require_POST

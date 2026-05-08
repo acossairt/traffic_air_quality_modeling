@@ -6,6 +6,16 @@
 
   <h1>{% if project %}{{ project.name }}{% else %}New project{% endif %}</h1>
 
+  {% if project.is_template %}
+    <div style="background:#fff8e1;border:1px solid #f0c36d;padding:.6rem .8rem;margin-bottom:1rem">
+      <strong>Read-only template.</strong> Clone it to make a sandbox you can edit.
+      <form method="post" action="{% url 'project_clone' project.pk %}" style="display:inline;margin-left:.5rem">
+        {% csrf_token %}
+        <button class="primary" type="submit">New from template</button>
+      </form>
+    </div>
+  {% endif %}
+
   <form method="post">
     {% csrf_token %}
 
@@ -80,7 +90,9 @@
     {% endif %}
 
     <div class="actions">
-      <button class="primary" type="submit">Save</button>
+      {% if not project.is_template %}
+        <button class="primary" type="submit">Save</button>
+      {% endif %}
       {% if project %}
         <a class="btn" href="{% url 'project_config_json' project.pk %}" target="_blank">View config JSON</a>
       {% endif %}

@@ -16,6 +16,10 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_template = models.BooleanField(
+        default=False,
+        help_text="Read-only baseline; users clone from it to start a new sandbox.",
+    )
 
     # simulation parameters (sim block in the JSON config)
     tspan_start = models.FloatField(default=0.0)
