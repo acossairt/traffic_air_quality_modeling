@@ -66,70 +66,84 @@
       renderVelocity(data);
     }
 
+    // Build "fromLabel→toLabel" from patch labels so legend strings don't
+    // leak DB pks (which are what `key` actually contains).
+    function edgeName(d, e) {
+      const from = d.patches[String(e.from)]?.label ?? e.from;
+      const to   = d.patches[String(e.to)]?.label ?? e.to;
+      return `${from}→${to}`;
+    }
+
     // ----- chart 1: patch + corridor populations vs time
     function renderPopulations(d) {
       const traces = [];
       Object.entries(d.patches).forEach(([id, p]) => {
         traces.push({ x: d.time, y: p.np, mode: 'lines', name: `np[${p.label}]`, line: { width: 2.5 } });
       });
-      Object.entries(d.edges).forEach(([key, e]) => {
-        traces.push({ x: d.time, y: e.nc, mode: 'lines', name: `nc[${key}]`, line: { width: 2 } });
+      Object.values(d.edges).forEach((e) => {
+        traces.push({ x: d.time, y: e.nc, mode: 'lines', name: `nc[${edgeName(d, e)}]`, line: { width: 2 } });
       });
       Plotly.newPlot('plot-pops', traces, {
-        title: 'Patch and corridor populations over time',
+        title: 'Patch and Corridor Populations',
         xaxis: { title: 'Time (hours)' },
-        yaxis: { title: 'Vehicles' },
+        yaxis: { title: 'Population (number of vehicles)' },
         hovermode: 'x unified',
-        height: 400,
+        height: 460,
+        margin: { b: 110 },
+        legend: { orientation: 'h', x: 0, y: -0.25, xanchor: 'left', yanchor: 'top' },
       }, { responsive: true });
     }
 
     // ----- chart 2: corridor counts (left) + emissions (right, in tons)
     function renderEmissions(d) {
       const traces = [];
-      Object.entries(d.edges).forEach(([key, e]) => {
-        traces.push({ x: d.time, y: e.nc, mode: 'lines', name: `nc[${key}]`, line: { width: 2 } });
+      Object.values(d.edges).forEach((e) => {
+        traces.push({ x: d.time, y: e.nc, mode: 'lines', name: `nc[${edgeName(d, e)}]`, line: { width: 2 } });
       });
-      Object.entries(d.edges).forEach(([key, e]) => {
+      Object.values(d.edges).forEach((e) => {
         traces.push({
           x: d.time, y: e.ec.map(v => v / 1000), mode: 'lines',
-          name: `ec[${key}] (t/hr)`, yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
+          name: `ec[${edgeName(d, e)}] (mt/hr)`, yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
         });
       });
       traces.push({
         x: d.time, y: d.et.map(v => v / 1000), mode: 'lines',
-        name: 'total et (t)', yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
+        name: 'total et (mt)', yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
       });
       Plotly.newPlot('plot-emissions', traces, {
-        title: 'Corridor vehicle counts and emissions over time',
+        title: 'Corridor Vehicle Counts and Emissions',
         xaxis: { title: 'Time (hours)' },
-        yaxis: { title: 'Vehicles in corridor' },
-        yaxis2: { title: 'Emissions (metric tons)', overlaying: 'y', side: 'right' },
+        yaxis: { title: 'Number of Vehicles in Corridor' },
+        yaxis2: { title: 'Emissions (units in legend)', overlaying: 'y', side: 'right' },
         hovermode: 'x unified',
-        height: 400,
+        height: 460,
+        margin: { b: 110 },
+        legend: { orientation: 'h', x: 0, y: -0.25, xanchor: 'left', yanchor: 'top' },
       }, { responsive: true });
     }
 
     // ----- chart 3: emissions per vehicle (left) + velocity (right)
     function renderVelocity(d) {
       const traces = [];
-      Object.entries(d.edges).forEach(([key, e]) => {
+      Object.values(d.edges).forEach((e) => {
         const evp = e.ec.map((v, i) => e.nc[i] > 1e-6 ? v / e.nc[i] : 0);
-        traces.push({ x: d.time, y: evp, mode: 'lines', name: `ec/nc[${key}]`, line: { width: 2 } });
+        traces.push({ x: d.time, y: evp, mode: 'lines', name: `ec/nc[${edgeName(d, e)}]`, line: { width: 2 } });
       });
-      Object.entries(d.edges).forEach(([key, e]) => {
+      Object.values(d.edges).forEach((e) => {
         traces.push({
           x: d.time, y: e.v, mode: 'lines',
-          name: `v̄[${key}]`, yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
+          name: `v̄[${edgeName(d, e)}]`, yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
         });
       });
       Plotly.newPlot('plot-vel', traces, {
-        title: 'Corridor emissions per vehicle and velocity over time',
+        title: 'Corridor per-Vehicle Emission Rates and Velocity',
         xaxis: { title: 'Time (hours)' },
-        yaxis: { title: 'Emissions / vehicle (kg/hr)' },
+        yaxis: { title: 'Emission rate per vehicle (kg/hr)' },
         yaxis2: { title: 'Velocity (km/hr)', overlaying: 'y', side: 'right' },
         hovermode: 'x unified',
-        height: 400,
+        height: 460,
+        margin: { b: 110 },
+        legend: { orientation: 'h', x: 0, y: -0.25, xanchor: 'left', yanchor: 'top' },
       }, { responsive: true });
     }
 

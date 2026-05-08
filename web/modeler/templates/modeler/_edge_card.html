@@ -21,23 +21,23 @@ edge_formset.empty_form (hidden, used as a JS clone template).
   <div class="edge-card-body">
     <div class="param-group">
       <h4>Demand</h4>
-      {% include "modeler/_slider_field.html" with field=f.demhf  pname="demhf"  label="Source half-pop (veh)" tooltip="Vehicles in source patch at which trip demand reaches half its peak" %}
-      {% include "modeler/_slider_field.html" with field=f.shift  pname="shift"  label="Phase shift (h)"        tooltip="Moves the daily peak earlier or later" %}
-      {% include "modeler/_slider_field.html" with field=f.dur    pname="dur"    label="Peak narrowness"        tooltip="Closer to 1 = sharper peak; near 0 = on for half the cycle" %}
-      {% include "modeler/_slider_field.html" with field=f.dsharp pname="dsharp" label="Edge sharpness"         tooltip="How steeply demand turns on/off around the peak" %}
-      {% include "modeler/_slider_field.html" with field=f.bgd    pname="bgd"    label="Background level"       tooltip="Constant baseline demand outside the peak" %}
+      {% include "modeler/_slider_field.html" with field=f.demhf  pname="demhf"  label="Source saturation (veh)" desc="How many vehicles need to be in the source patch before demand to leave is at half its peak. Higher = harder to drain the patch." %}
+      {% include "modeler/_slider_field.html" with field=f.shift  pname="shift"  label="Peak time (h)"           desc="Hour of day when the daily demand peak occurs. Negative shifts the peak earlier." %}
+      {% include "modeler/_slider_field.html" with field=f.dur    pname="dur"    label="Peak width"              desc="Width of the daily demand peak. Closer to 1 = sharp rush hour; near 0 = demand on for roughly half the day." %}
+      {% include "modeler/_slider_field.html" with field=f.dsharp pname="dsharp" label="Peak sharpness"          desc="How abruptly demand turns on and off around the peak. Higher = steeper edges, more rush-hour-like." %}
+      {% include "modeler/_slider_field.html" with field=f.bgd    pname="bgd"    label="Off-peak floor"          desc="Constant baseline demand outside the peak. Set to 0 for a strict commute pulse." %}
     </div>
     <div class="param-group">
       <h4>Corridor</h4>
-      {% include "modeler/_slider_field.html" with field=f.vff        pname="vff"        label="Free-flow speed (km/h)" tooltip="Speed in an empty corridor" %}
-      {% include "modeler/_slider_field.html" with field=f.nc_half_ff pname="nc_half_ff" label="Half-speed density"     tooltip="Fractional corridor density at which speed drops to half free-flow" %}
-      {% include "modeler/_slider_field.html" with field=f.vsharp     pname="vsharp"     label="Density sharpness"      tooltip="Steepness of the speed-vs-density dropoff" %}
+      {% include "modeler/_slider_field.html" with field=f.vff        pname="vff"        label="Free-flow speed (km/h)" desc="Vehicle speed when the corridor is empty — effectively the speed limit." %}
+      {% include "modeler/_slider_field.html" with field=f.nc_half_ff pname="nc_half_ff" label="Half-speed density"     desc="Fraction of corridor capacity at which average speed drops to half free-flow. Lower = congestion sets in quickly." %}
+      {% include "modeler/_slider_field.html" with field=f.vsharp     pname="vsharp"     label="Congestion sharpness"   desc="How quickly speed collapses as the corridor fills. Higher = a sharper cliff from free-flow into gridlock." %}
     </div>
     <div class="param-group">
       <h4>On-ramp</h4>
-      {% include "modeler/_slider_field.html" with field=f.onff    pname="onff"    label="Throughput cap (veh/h)" tooltip="Peak rate at which vehicles can enter the corridor" %}
-      {% include "modeler/_slider_field.html" with field=f.on_half pname="on_half" label="Throttle midpoint"      tooltip="Corridor density at which entry rate drops to half" %}
-      {% include "modeler/_slider_field.html" with field=f.onsharp pname="onsharp" label="Throttle sharpness"     tooltip="How sharply the on-ramp throttle engages" %}
+      {% include "modeler/_slider_field.html" with field=f.onff    pname="onff"    label="Max entry rate (veh/h)" desc="Peak rate at which the corridor can accept new vehicles from the source patch." %}
+      {% include "modeler/_slider_field.html" with field=f.on_half pname="on_half" label="Entry half-density"     desc="Corridor density at which the on-ramp is throttled to half its max rate." %}
+      {% include "modeler/_slider_field.html" with field=f.onsharp pname="onsharp" label="Entry sharpness"        desc="How abruptly the on-ramp closes off as the corridor fills. Higher = sharper cutoff." %}
     </div>
     {% if f.errors %}<div style="color:#b00;font-size:0.85rem">{{ f.errors }}</div>{% endif %}
   </div>

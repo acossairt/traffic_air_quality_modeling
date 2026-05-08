@@ -7,7 +7,8 @@ name `pname` in lighter small text, so users can match against the JSON/Julia.
 {% endcomment %}
 <div class="slider-field" title="{{ tooltip|default:label }}">
   <label for="{{ field.id_for_label }}">
-    {{ label }}<span class="pname">({{ pname }})</span>
+    <span class="slider-field-label">{{ label }}<span class="pname">({{ pname }})</span></span>
+    {% if desc %}<span class="slider-field-desc">{{ desc }}</span>{% endif %}
   </label>
   <input type="range"
          min="{{ field.field.widget.attrs.min }}"
