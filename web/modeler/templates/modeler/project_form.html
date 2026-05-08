@@ -1,0 +1,120 @@
+{% extends "modeler/base.html" %}
+{% load static %}
+{% block title %}{{ project.name|default:"New project" }}{% endblock %}
+{% block content %}
+  <link rel="stylesheet" href="{% static 'modeler/editor.css' %}">
+
+  <h1>{% if project %}{{ project.name }}{% else %}New project{% endif %}</h1>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <fieldset>
+      <legend>Project</legend>
+      <table>
+        {% for field in form %}
+          <tr>
+            <th style="width: 12rem;">{{ field.label }}</th>
+            <td>{{ field }}{% if field.help_text %} <small>{{ field.help_text }}</small>{% endif %}</td>
+          </tr>
+          {% if field.errors %}<tr><td></td><td style="color:#b00">{{ field.errors }}</td></tr>{% endif %}
+        {% endfor %}
+      </table>
+    </fieldset>
+
+    {% if project %}
+      <fieldset class="network-preview">
+        <legend>Network</legend>
+        <svg id="network-preview"></svg>
+        <script id="network-data" type="application/json">{{ network_json|safe }}</script>
+      </fieldset>
+
+      <fieldset>
+        <legend>Patches</legend>
+        {{ patch_formset.management_form }}
+        <table>
+          <thead>
+            <tr><th>Label</th><th>Initial population</th><th>Order</th><th>Delete</th></tr>
+          </thead>
+          <tbody id="patches-list">
+            {% for f in patch_formset %}
+              <tr class="patch-row">
+                <td>{{ f.label }}{{ f.id }}</td>
+                <td>{{ f.initial_pop }}</td>
+                <td>{{ f.display_order }}</td>
+                <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+              </tr>
+              {% if f.errors %}<tr><td colspan="4" style="color:#b00">{{ f.errors }}</td></tr>{% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="add-row">
+          <button type="button" class="btn" data-add-form="patches">+ Add patch</button>
+          <small>Save the project after adding patches; new edges can then reference them.</small>
+        </div>
+        <template id="patches-empty-form"><tr class="patch-row">
+          <td>{{ patch_formset.empty_form.label }}{{ patch_formset.empty_form.id }}</td>
+          <td>{{ patch_formset.empty_form.initial_pop }}</td>
+          <td>{{ patch_formset.empty_form.display_order }}</td>
+          <td></td>
+        </tr></template>
+      </fieldset>
+
+      <fieldset>
+        <legend>Edges</legend>
+        {{ edge_formset.management_form }}
+        <div class="add-row">
+          <button type="button" class="btn" id="edges-collapse-all">Collapse all</button>
+          <button type="button" class="btn" id="edges-expand-all">Expand all</button>
+        </div>
+        <div id="edges-list">
+          {% for f in edge_formset %}
+            {% include "modeler/_edge_card.html" with f=f %}
+          {% endfor %}
+        </div>
+        <div class="add-row">
+          <button type="button" class="btn" data-add-form="edges">+ Add edge</button>
+        </div>
+        <template id="edges-empty-form">{% include "modeler/_edge_card.html" with f=edge_formset.empty_form %}</template>
+      </fieldset>
+    {% endif %}
+
+    <div class="actions">
+      <button class="primary" type="submit">Save</button>
+      {% if project %}
+        <a class="btn" href="{% url 'project_config_json' project.pk %}" target="_blank">View config JSON</a>
+      {% endif %}
+      <a class="btn" href="{% url 'project_list' %}">Back</a>
+    </div>
+  </form>
+
+  {% if project %}
+    <form method="post" action="{% url 'run_create' project.pk %}" style="margin: 1rem 0">
+      {% csrf_token %}
+      <button class="primary" type="submit">▶ Run simulation</button>
+      <small>Save first if you have unsaved changes — the run uses the saved state.</small>
+    </form>
+
+    {% if project.runs.exists %}
+      <fieldset>
+        <legend>Run history</legend>
+        <table>
+          <thead><tr><th>ID</th><th>Status</th><th>Created</th><th>Completed</th><th></th></tr></thead>
+          <tbody>
+            {% for r in project.runs.all|slice:":10" %}
+              <tr>
+                <td>{{ r.pk }}</td>
+                <td>{{ r.get_status_display }}</td>
+                <td>{{ r.created_at|date:"Y-m-d H:i:s" }}</td>
+                <td>{% if r.completed_at %}{{ r.completed_at|date:"Y-m-d H:i:s" }}{% endif %}</td>
+                <td><a class="btn" href="{% url 'run_detail' r.pk %}">View</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </fieldset>
+    {% endif %}
+  {% endif %}
+
+  <script src="{% static 'modeler/editor.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "modeler/base.html" %}
+{% load static %}
+{% block title %}Run {{ run.pk }}{% endblock %}
+{% block content %}
+  <h1>Run {{ run.pk }} — {{ run.project.name }}</h1>
+  <p>
+    <a class="btn" href="{% url 'project_edit' run.project.pk %}">Back to project</a>
+    Created {{ run.created_at|date:"Y-m-d H:i:s" }}
+  </p>
+
+  <div id="run-status-block">
+    <p>Status: <strong id="run-status">{{ run.status }}</strong> <span id="run-spinner"></span></p>
+    <p id="run-error" style="color:#b00"></p>
+  </div>
+
+  <div id="plots" style="display:none">
+    <div id="plot-pops" style="margin:1rem 0"></div>
+    <div id="plot-emissions" style="margin:1rem 0"></div>
+    <div id="plot-vel" style="margin:1rem 0"></div>
+  </div>
+
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <script>
+    const RUN_PK = {{ run.pk }};
+    const STATUS_URL  = `/runs/${RUN_PK}/status`;
+    const RESULTS_URL = `/runs/${RUN_PK}/results`;
+
+    const statusEl  = document.querySelector('#run-status');
+    const spinnerEl = document.querySelector('#run-spinner');
+    const errorEl   = document.querySelector('#run-error');
+    const plotsEl   = document.querySelector('#plots');
+
+    let dots = 0;
+    function tick() {
+      dots = (dots + 1) % 4;
+      spinnerEl.textContent = '.'.repeat(dots);
+    }
+
+    async function poll() {
+      let data;
+      try {
+        const r = await fetch(STATUS_URL);
+        data = await r.json();
+      } catch (e) {
+        statusEl.textContent = 'connection error';
+        return setTimeout(poll, 3000);
+      }
+      statusEl.textContent = data.status;
+      if (data.status === 'completed') {
+        spinnerEl.textContent = '';
+        await loadAndPlot();
+      } else if (data.status === 'failed') {
+        spinnerEl.textContent = '';
+        errorEl.textContent = data.error || 'unknown error';
+      } else {
+        tick();
+        setTimeout(poll, 1500);
+      }
+    }
+
+    async function loadAndPlot() {
+      const data = await fetch(RESULTS_URL).then(r => r.json());
+      plotsEl.style.display = 'block';
+      renderPopulations(data);
+      renderEmissions(data);
+      renderVelocity(data);
+    }
+
+    // ----- chart 1: patch + corridor populations vs time
+    function renderPopulations(d) {
+      const traces = [];
+      Object.entries(d.patches).forEach(([id, p]) => {
+        traces.push({ x: d.time, y: p.np, mode: 'lines', name: `np[${p.label}]`, line: { width: 2.5 } });
+      });
+      Object.entries(d.edges).forEach(([key, e]) => {
+        traces.push({ x: d.time, y: e.nc, mode: 'lines', name: `nc[${key}]`, line: { width: 2 } });
+      });
+      Plotly.newPlot('plot-pops', traces, {
+        title: 'Patch and corridor populations over time',
+        xaxis: { title: 'Time (hours)' },
+        yaxis: { title: 'Vehicles' },
+        hovermode: 'x unified',
+        height: 400,
+      }, { responsive: true });
+    }
+
+    // ----- chart 2: corridor counts (left) + emissions (right, in tons)
+    function renderEmissions(d) {
+      const traces = [];
+      Object.entries(d.edges).forEach(([key, e]) => {
+        traces.push({ x: d.time, y: e.nc, mode: 'lines', name: `nc[${key}]`, line: { width: 2 } });
+      });
+      Object.entries(d.edges).forEach(([key, e]) => {
+        traces.push({
+          x: d.time, y: e.ec.map(v => v / 1000), mode: 'lines',
+          name: `ec[${key}] (t/hr)`, yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
+        });
+      });
+      traces.push({
+        x: d.time, y: d.et.map(v => v / 1000), mode: 'lines',
+        name: 'total et (t)', yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
+      });
+      Plotly.newPlot('plot-emissions', traces, {
+        title: 'Corridor vehicle counts and emissions over time',
+        xaxis: { title: 'Time (hours)' },
+        yaxis: { title: 'Vehicles in corridor' },
+        yaxis2: { title: 'Emissions (metric tons)', overlaying: 'y', side: 'right' },
+        hovermode: 'x unified',
+        height: 400,
+      }, { responsive: true });
+    }
+
+    // ----- chart 3: emissions per vehicle (left) + velocity (right)
+    function renderVelocity(d) {
+      const traces = [];
+      Object.entries(d.edges).forEach(([key, e]) => {
+        const evp = e.ec.map((v, i) => e.nc[i] > 1e-6 ? v / e.nc[i] : 0);
+        traces.push({ x: d.time, y: evp, mode: 'lines', name: `ec/nc[${key}]`, line: { width: 2 } });
+      });
+      Object.entries(d.edges).forEach(([key, e]) => {
+        traces.push({
+          x: d.time, y: e.v, mode: 'lines',
+          name: `v̄[${key}]`, yaxis: 'y2', line: { dash: 'dashdot', width: 2 },
+        });
+      });
+      Plotly.newPlot('plot-vel', traces, {
+        title: 'Corridor emissions per vehicle and velocity over time',
+        xaxis: { title: 'Time (hours)' },
+        yaxis: { title: 'Emissions / vehicle (kg/hr)' },
+        yaxis2: { title: 'Velocity (km/hr)', overlaying: 'y', side: 'right' },
+        hovermode: 'x unified',
+        height: 400,
+      }, { responsive: true });
+    }
+
+    poll();
+  </script>
+{% endblock %}

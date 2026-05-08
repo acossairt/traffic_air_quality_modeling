@@ -1,0 +1,27 @@
+{
+  "patches": [
+    {"id": 1, "label": "Patch 1", "initial_pop": 9424},
+    {"id": 2, "label": "Patch 2", "initial_pop": 576}
+  ],
+  "edges": [
+    {
+      "from": 1, "to": 2,
+      "vff": 120, "nc_half_ff": 0.3, "vsharp": 1.0,
+      "demhf": 3000, "shift": 1, "dur": 0.97, "dsharp": 100, "bgd": 0,
+      "onff": 5000, "on_half": 0.5, "onsharp": 1
+    },
+    {
+      "from": 2, "to": 1,
+      "vff": 120, "nc_half_ff": 0.3, "vsharp": 1.0,
+      "demhf": 500, "shift": 10, "dur": 0.97, "dsharp": 100, "bgd": 0,
+      "onff": 5000, "on_half": 0.5, "onsharp": 1
+    }
+  ],
+  "sim": {
+    "tspan": [0.0, 48.0],
+    "period": 24,
+    "psi": 100,
+    "L": 30,
+    "saveat": 0.1
+  }
+}

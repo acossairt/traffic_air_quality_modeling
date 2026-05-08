@@ -1,0 +1,18 @@
+{% comment %}
+A slider + number input pair sharing the same value. The number input is the
+real form field (it carries the form name); the range input shadows it via JS.
+Range bounds come from the field's widget attrs (set in EdgeForm.__init__).
+The first column shows a plain-language `label` plus the underlying parameter
+name `pname` in lighter small text, so users can match against the JSON/Julia.
+{% endcomment %}
+<div class="slider-field" title="{{ tooltip|default:label }}">
+  <label for="{{ field.id_for_label }}">
+    {{ label }}<span class="pname">({{ pname }})</span>
+  </label>
+  <input type="range"
+         min="{{ field.field.widget.attrs.min }}"
+         max="{{ field.field.widget.attrs.max }}"
+         step="{{ field.field.widget.attrs.step }}"
+         value="{{ field.value|default_if_none:field.field.initial|default_if_none:0 }}">
+  {{ field }}
+</div>

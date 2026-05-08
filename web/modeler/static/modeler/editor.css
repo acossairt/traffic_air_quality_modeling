@@ -1,0 +1,121 @@
+/* Edge cards & sliders */
+
+.edge-card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0.75rem 0;
+  background: white;
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(320px, 380px);
+  grid-gap: 1rem;
+  align-items: start;
+}
+
+.edge-card.collapsed {
+  grid-template-columns: 1fr;
+  padding: 0.5rem 1rem;
+}
+.edge-card.collapsed .edge-card-body,
+.edge-card.collapsed .edge-card-preview {
+  display: none;
+}
+.edge-card.collapsed .edge-card-header {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.edge-card-toggle {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 0.1rem 0.5rem;
+  cursor: pointer;
+  font-size: 0; /* hides the ▾ in the markup; ::before draws the active arrow */
+  line-height: 1;
+  color: #444;
+}
+.edge-card-toggle::before { font-size: 0.85rem; }
+.edge-card.collapsed .edge-card-toggle::before { content: "▸"; }
+.edge-card:not(.collapsed) .edge-card-toggle::before { content: "▾"; }
+
+.edge-card-header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.edge-card-header .from-to {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 500;
+}
+
+.edge-card-header select {
+  width: auto;
+  min-width: 8rem;
+}
+
+.edge-card-body { min-width: 0; }
+
+.edge-card-preview {
+  background: #f7f7f7;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.edge-card-preview svg { width: 100%; height: auto; display: block; }
+
+.param-group { margin-bottom: 0.75rem; }
+.param-group h4 {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+
+.slider-field {
+  display: grid;
+  grid-template-columns: 13rem 7rem 4.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+.slider-field label {
+  font-size: 0.85rem;
+  line-height: 1.15;
+}
+.slider-field label .pname {
+  color: #999;
+  font-size: 0.7rem;
+  margin-left: 0.2rem;
+}
+.slider-field input[type="range"] { width: 100%; }
+.slider-field input[type="number"] { padding: 0.2rem 0.3rem; }
+
+.network-preview {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  padding: 0.5rem;
+  margin: 0.5rem 0 1rem 0;
+}
+.network-preview svg { width: 100%; height: 360px; display: block; }
+
+.delete-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #b00;
+}
+
+.add-row { margin: 0.5rem 0; }

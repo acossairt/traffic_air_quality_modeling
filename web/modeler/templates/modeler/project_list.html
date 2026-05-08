@@ -1,0 +1,33 @@
+{% extends "modeler/base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+  <h1>Projects</h1>
+  <div class="actions">
+    <a class="btn primary" href="{% url 'project_create' %}">New project</a>
+  </div>
+  {% if projects %}
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Patches</th><th>Edges</th><th>Updated</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in projects %}
+          <tr>
+            <td><a href="{% url 'project_edit' p.pk %}">{{ p.name }}</a></td>
+            <td>{{ p.patches.count }}</td>
+            <td>{{ p.edges.count }}</td>
+            <td>{{ p.updated_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              <form method="post" action="{% url 'project_delete' p.pk %}" style="display:inline" onsubmit="return confirm('Delete {{ p.name }}?')">
+                {% csrf_token %}
+                <button class="danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No projects yet.</p>
+  {% endif %}
+{% endblock %}
