@@ -71,8 +71,11 @@
       </fieldset>
 
       <fieldset>
-        <legend>Edges</legend>
+        <legend>Corridors</legend>
         {{ edge_formset.management_form }}
+        <p style="color:#555;font-size:0.85rem;margin:0 0 0.5rem 0">
+          Corridors start collapsed — use the ▸ arrow on the right of each card to expand it, or use the buttons below to act on all at once.
+        </p>
         <div class="add-row">
           <button type="button" class="btn" id="edges-collapse-all">Collapse all</button>
           <button type="button" class="btn" id="edges-expand-all">Expand all</button>
@@ -83,7 +86,7 @@
           {% endfor %}
         </div>
         <div class="add-row">
-          <button type="button" class="btn" data-add-form="edges">+ Add edge</button>
+          <button type="button" class="btn" data-add-form="edges">+ Add corridor</button>
         </div>
         <template id="edges-empty-form">{% include "modeler/_edge_card.html" with f=edge_formset.empty_form %}</template>
       </fieldset>

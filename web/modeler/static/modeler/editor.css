@@ -74,6 +74,11 @@
 .edge-card-preview svg { width: 100%; height: auto; display: block; }
 
 .param-group { margin-bottom: 0.75rem; }
+.param-group + .param-group {
+  border-top: 1px solid #ddd;
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}
 .param-group h4 {
   margin: 0 0 0.4rem 0;
   font-size: 0.85rem;

@@ -126,7 +126,7 @@
     function renderVelocity(d) {
       const traces = [];
       Object.values(d.edges).forEach((e) => {
-        const evp = e.ec.map((v, i) => e.nc[i] > 1e-6 ? v / e.nc[i] : 0);
+        const evp = e.ec.map((v, i) => e.nc[i] > 1e-6 ? v / e.nc[i] : null);
         traces.push({ x: d.time, y: evp, mode: 'lines', name: `ec/nc[${edgeName(d, e)}]`, line: { width: 2 } });
       });
       Object.values(d.edges).forEach((e) => {

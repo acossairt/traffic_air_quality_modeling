@@ -20,9 +20,13 @@
     if (b === 0) return 0;
     return a * Math.exp(-Math.LN2 * Math.pow(x / b, c));
   }
+  // The form exposes "peak_time" (24h clock) instead of the raw shift.
+  // shift = peak_time - 6 keeps the underlying Julia math identical.
+  const PEAK_TIME_OFFSET = 6;
   function demandAtTime(t, params, fromPop, period) {
     const sat = 1 - gWeib(fromPop, 1, params.demhf, 4);
-    const diurnal = fSig(vShifted(params.shift, t, period), params.dsharp, params.dur, 1);
+    const shift = (params.peak_time ?? 0) - PEAK_TIME_OFFSET;
+    const diurnal = fSig(vShifted(shift, t, period), params.dsharp, params.dur, 1);
     return sat * diurnal + params.bgd;
   }
 
@@ -93,36 +97,40 @@
   // ---------------------------------------------------------------------------
   // Corridor curves: normalized velocity & ramp-throttle vs. fractional density
   // ---------------------------------------------------------------------------
-  function renderCorridorCurves(svg, params) {
-    const W = 320, H = 160, ML = 36, MR = 10, MT = 10, MB = 24;
+  // Render a single g(x, a, b, c) = a * exp(-ln2 * (x/b)^c) curve over
+  // fractional density x = nc/(ψL) ∈ [0, 1.2]. y-axis is in real units 0..yMax.
+  function renderGCurve(svg, { a, b, c, color }) {
+    const W = 320, H = 160, ML = 44, MR = 10, MT = 10, MB = 24;
     const N = 200;
-    const xMaxFrac = 2;  // plot up to 2x corridor capacity
+    const xMaxFrac = 1.2;
     const dx = xMaxFrac / N;
+    const yMax = a > 0 ? a : 1;
 
-    const velPts = [];
-    const rampPts = [];
+    const pts = [];
     for (let i = 0; i <= N; i++) {
-      const x = i * dx;  // fractional density nc/(ψL)
-      // Both normalized so that the value at x=0 is 1.
-      // g(x, a, b, c) = a * exp(-ln2 * (x/b)^c). Dividing by a gives the unit curve.
-      const vNorm = Math.exp(-Math.LN2 * Math.pow(x / params.nc_half_ff, params.vsharp));
-      const rNorm = Math.exp(-Math.LN2 * Math.pow(x / params.on_half, params.onsharp));
-      velPts.push([x, vNorm]);
-      rampPts.push([x, rNorm]);
+      const x = i * dx;
+      const y = a * Math.exp(-Math.LN2 * Math.pow(x / b, c));
+      pts.push([x, y]);
     }
 
     const xMap = (x) => ML + ((W - ML - MR) * x) / xMaxFrac;
-    const yMap = (y) => H - MB - ((H - MT - MB) * y) / 1.05;
-    const toPath = (pts) => pts
+    const yMap = (y) => H - MB - ((H - MT - MB) * y) / (yMax * 1.05);
+    const toPath = (p) => p
       .filter(([_, y]) => Number.isFinite(y))
       .map(([x, y], i) => (i === 0 ? "M" : "L") + xMap(x).toFixed(1) + "," + yMap(y).toFixed(1))
       .join(" ");
 
-    const gridX = [0.5, 1.0, 1.5, 2.0].map(x =>
+    const gridX = [0.3, 0.6, 0.9, 1.2].map(x =>
       `<line x1="${xMap(x)}" y1="${MT}" x2="${xMap(x)}" y2="${H - MB}" stroke="#eee"/>`
     ).join("");
-    const xLabels = [0, 0.5, 1, 1.5, 2].map(x =>
+    const xLabels = [0, 0.3, 0.6, 0.9, 1.2].map(x =>
       `<text x="${xMap(x)}" y="${H - MB + 14}" font-size="10" text-anchor="middle">${x}</text>`
+    ).join("");
+
+    // y-axis ticks at 0, yMax/2, yMax — formatted compactly.
+    const fmt = (v) => v >= 100 ? Math.round(v).toString() : v.toFixed(v < 1 ? 2 : 1);
+    const yTicks = [0, yMax / 2, yMax].map(y =>
+      `<text x="${ML - 4}" y="${yMap(y) + 3}" font-size="10" text-anchor="end">${fmt(y)}</text>`
     ).join("");
 
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -130,10 +138,8 @@
       <rect x="${ML}" y="${MT}" width="${W - ML - MR}" height="${H - MT - MB}" fill="#fafafa" stroke="#ccc"/>
       ${gridX}
       <line x1="${xMap(1)}" y1="${MT}" x2="${xMap(1)}" y2="${H - MB}" stroke="#bbb" stroke-dasharray="3,3"/>
-      <path d="${toPath(velPts)}" fill="none" stroke="#2563eb" stroke-width="2"/>
-      <path d="${toPath(rampPts)}" fill="none" stroke="#dc2626" stroke-width="2"/>
-      <text x="${ML - 4}" y="${MT + 4}" font-size="10" text-anchor="end" alignment-baseline="hanging">1</text>
-      <text x="${ML - 4}" y="${H - MB}" font-size="10" text-anchor="end">0</text>
+      <path d="${toPath(pts)}" fill="none" stroke="${color}" stroke-width="2"/>
+      ${yTicks}
       <text x="${(ML + W - MR) / 2}" y="${H - 2}" font-size="10" text-anchor="middle" fill="#555">nc / (ψL)</text>
       ${xLabels}
     `;
@@ -141,12 +147,18 @@
 
   function initEdgeCard(card) {
     const demandSvg = card.querySelector('svg.demand-preview');
-    const corridorSvg = card.querySelector('svg.corridor-preview');
+    const velSvg    = card.querySelector('svg.velocity-preview');
+    const rampSvg   = card.querySelector('svg.ramp-preview');
 
     function updatePreview() {
       const params = readEdgeParams(card);
       if (demandSvg) renderDemandCurve(demandSvg, params, readFromPop(card), getPeriod());
-      if (corridorSvg) renderCorridorCurves(corridorSvg, params);
+      if (velSvg) renderGCurve(velSvg, {
+        a: params.vff, b: params.nc_half_ff, c: params.vsharp, color: '#2563eb',
+      });
+      if (rampSvg) renderGCurve(rampSvg, {
+        a: params.onff, b: params.on_half, c: params.onsharp, color: '#dc2626',
+      });
     }
 
     // Sync each slider with its sibling number input, both ways.
@@ -277,6 +289,8 @@
     (networkData.patches || []).forEach(p => { PATCH_POPS[String(p.id)] = p.initial_pop; });
 
     document.querySelectorAll('#edges-list .edge-card').forEach(initEdgeCard);
+    // Default existing edge cards to collapsed; freshly added cards stay open.
+    document.querySelectorAll('#edges-list .edge-card').forEach(c => c.classList.add('collapsed'));
     initFormsetButtons();
 
     const collapseAll = document.querySelector('#edges-collapse-all');
