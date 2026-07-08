@@ -15,6 +15,41 @@ Our objective is to build a general model of urban mobility systems, with NCT Ne
 - What is the impact on air pollution of increasing road connectivity by adding new corridors while keeping the same number of patches (increase parameter $K$, defined below)?
 - (Future work) How does information flow along links in the CIS to inform infrastructure investment decisions by PIP?
 
+## Web-based modeling tool
+
+The `web/` directory contains a small Django app for configuring patches, corridors, and simulation parameters through a browser, then running the Julia model and viewing the results — no need to edit code by hand. Each run spawns the Julia solver as a background subprocess and stores its output for plotting.
+
+### Prerequisites
+- **Python 3.11+**
+- **Julia** available on your `PATH` (the app invokes it as `julia`). Install the model's Julia dependencies once:
+  ```bash
+  julia -e 'using Pkg; Pkg.add(["ModelingToolkit", "DifferentialEquations", "Plots", "LinearAlgebra", "Interpolations"])'
+  ```
+  If `julia` is not on your `PATH`, set `JULIA_BINARY` in `web/trafficmodel/settings.py` to its full path.
+
+### First-time setup
+```bash
+cd web
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate           # create the SQLite database
+python manage.py import_example    # (optional) seed the "Default 2-patch template" project
+```
+
+### Running the server
+```bash
+cd web
+source .venv/bin/activate
+python manage.py runserver
+```
+Then open **http://127.0.0.1:8000/** in your browser. From there you can create a new project (or clone the 2-patch template), edit patches/corridors and parameters, launch a run, and view the resulting population and emissions plots. Stop the server with `Ctrl+C`.
+
+Notes:
+- The app runs the model via `julia_model/traffic_configurable.jl`; runs time out after 10 minutes.
+- The SQLite database (`web/db.sqlite3`) and generated outputs (`web/run_outputs/`) are git-ignored local state.
+- This is a lab/development tool (`DEBUG = True`); do not expose it to the public internet as-is.
+
 ## Model Background
 
 The concept for this model is shown in \autoref{fig:conceptual_diagram} for a case with two patches and two connective corridors.
